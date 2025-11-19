@@ -90,7 +90,7 @@ train_ds = train_ds.remove_columns(
 ```python
 from unsloth import FastLanguageModel
 
-model_name = "fromHuggingfacemodels/model-here"
+model_name = "fromHuggingfacemodels/model-herewith1bparamsandunslothsupportedmodels"
 max_seq_len = 2048
 
 model, tokenizer = FastLanguageModel.from_pretrained(
