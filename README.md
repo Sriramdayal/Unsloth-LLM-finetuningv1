@@ -5,7 +5,8 @@
 
 **Fast, lightweight, and scalable finetuning for open-source LLMs**
 
-  <img width="96" height="94" alt="image" src="https://github.com/user-attachments/assets/e7a8b869-68e6-4f20-aeb8-9beb34458327" />
+  <img width="3194" height="992" alt="17638338761695712928855779246747" src="https://github.com/user-attachments/assets/6c834e71-ad14-40b0-a26f-27783752c07f" />
+
 
 <p align="center">
   <img src="https://img.shields.io/badge/Framework-Unsloth-blue?logo=python" />
