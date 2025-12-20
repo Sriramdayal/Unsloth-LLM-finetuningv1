@@ -16,7 +16,7 @@
   <img src="https://img.shields.io/badge/License-MIT-purple" />
 </p>
 
-# FINE-TUNNINING AND INFERENCE NOTEBOOKS:
+# FINE-TUNING AND INFERENCE NOTEBOOKS:
 <p align="center">
   <a href="https://colab.research.google.com/drive/1WpbMOTuuW3E5KtcOTrkJ6AqQ3jTRRaoM?usp=sharing" target="_blank">
     <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"/>
