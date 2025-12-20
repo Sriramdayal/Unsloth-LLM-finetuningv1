@@ -20,6 +20,11 @@
     <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"/>
   </a>
 </p>
+<p align="center">
+  <a href="https://colab.research.google.com/drive/1_xWw9L-QgPql7sk94FJ2iJnS7VDp-Mit?usp=sharing" target="_blank">
+    <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"/>
+  </a>
+</p>
 <!-- HuggingFace Model Badge -->
   <a href="https://huggingface.co/black279/Qwen_LeetCoder" target="_blank">
     <img src="https://img.shields.io/badge/HuggingFace-Qwen_LeetCoder-orange?style=flat-square" alt="HuggingFace Model"/>
