@@ -7,7 +7,7 @@
 
   <img width="3194" height="992" alt="17638338761695712928855779246747" src="https://github.com/user-attachments/assets/6c834e71-ad14-40b0-a26f-27783752c07f" />
 
-
+# FINETUNNING:
 <p align="center">
   <img src="https://img.shields.io/badge/Framework-Unsloth-blue?logo=python" />
   <img src="https://img.shields.io/badge/LoRA-PEFT-green" />
@@ -15,6 +15,8 @@
   <img src="https://img.shields.io/badge/Quantization-4bit-orange" />
   <img src="https://img.shields.io/badge/License-MIT-purple" />
 </p>
+
+# INFERENCE:
 <p align="center">
   <a href="https://colab.research.google.com/drive/1WpbMOTuuW3E5KtcOTrkJ6AqQ3jTRRaoM?usp=sharing" target="_blank">
     <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"/>
