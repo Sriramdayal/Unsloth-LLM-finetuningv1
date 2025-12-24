@@ -49,7 +49,38 @@ Works for **instruction tuning, chat models, summarization, domain adaptation**,
 
 ---
 
-## 🔧 Installation
+## � Refactored Project Usage
+
+This repository has been refactored into a maintainable Python package structure.
+
+### 1. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 2. Run Training
+
+To fine-tune the model on the Movie Recommender dataset:
+
+```bash
+python scripts/run_training.py
+```
+
+Configuration can be modified in `src/config.py`.
+
+### 3. Run Inference
+
+To test individual inference with a fine-tuned model (or the example LeetCoder adapter):
+
+```bash
+python scripts/run_inference.py
+```
+
+
+---
+
+## �🔧 Installation
 
 ```bash
 pip install unsloth transformers datasets accelerate peft bitsandbytes trl
@@ -142,7 +173,7 @@ model = FastLanguageModel.for_training(model)
 from trl import SFTTrainer
 from transformers import TrainingArguments
 
-#tweak or add the parameters according to need, read the TRL,LORA,UNSLOTH documentation for mor info
+#tweak or add the parameters according to need, read the TRL,LORA,UNSLOTH documentation for meinfo
 trainer = SFTTrainer(
     model=model,
     tokenizer=tokenizer,
@@ -168,7 +199,7 @@ trainer.train()
 
 ---
 
-## 🔄 Merge LoRA Weights (Optional)
+## � Merge LoRA Weights (Optional)
 
 ### Merge LoRA + Base for Deployment
 model deployment in huggingface  example: click below badge to visit
@@ -246,4 +277,3 @@ MIT
 * [PEFT](https://github.com/huggingface/peft)
 
 ---
-
