@@ -80,6 +80,41 @@ python scripts/run_inference.py
 
 ---
 
+## 🐳 Docker Usage
+
+Alternatively, you can run the project using Docker to avoid manual environment setup.
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) installed on your machine.
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) configured for GPU support.
+
+### Building and Running
+
+1.  **Build the Docker image:**
+
+    ```bash
+    docker compose build
+    ```
+
+2.  **Run the container:**
+
+    ```bash
+    docker compose up -d
+    ```
+
+3.  **Run Training/Inference:**
+
+    ```bash
+    # Enter the container
+    docker compose run --rm unsloth-app /bin/bash
+
+    # Run scripts inside
+    python scripts/run_training.py
+    ```
+
+---
+
 ## �🔧 Installation
 
 ```bash
@@ -277,3 +312,4 @@ MIT
 * [PEFT](https://github.com/huggingface/peft)
 
 ---
+

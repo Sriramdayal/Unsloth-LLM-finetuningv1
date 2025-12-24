@@ -1,0 +1,16 @@
+services:
+  unsloth-app:
+    build: .
+    volumes:
+      - .:/app
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    shm_size: 4gb # Increased shared memory for large models
+    command: /bin/bash
+    stdin_open: true # docker run -i
+    tty: true # docker run -t
