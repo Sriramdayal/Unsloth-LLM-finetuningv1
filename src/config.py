@@ -1,34 +1,98 @@
+"""
+Configuration definitions for the Unsloth Enterprise Pipeline.
+Uses strict dataclasses compatible with HfArgumentParser for robust argument handling.
+"""
+
 from dataclasses import dataclass, field
-from typing import Optional, List
+from typing import Optional
 
 @dataclass
 class ModelConfig:
-    model_name: str = "Qwen/Qwen2.5-0.5B"
-    max_seq_length: int = 2048
-    load_in_4bit: bool = True
-    # LoRA Parameters
-    lora_r: int = 64
-    lora_alpha: int = 128
-    lora_dropout: float = 0.0
-    target_modules: List[str] = field(default_factory=lambda: [
-        "q_proj", "k_proj", "v_proj", "o_proj",
-        "gate_proj", "up_proj", "down_proj",
-    ])
-    random_state: int = 3407
+    """
+    Configuration for Model Loading and LoRA parameters.
+    """
+    model_name_or_path: str = field(
+        metadata={"help": "Path to pretrained model or model identifier from huggingface.co/models"}
+    )
+    load_in_4bit: bool = field(
+        default=True,
+        metadata={"help": "Whether to load the model in 4-bit precision using bitsandbytes."}
+    )
+    max_seq_length: int = field(
+        default=2048,
+        metadata={"help": "The maximum sequence length for the model."}
+    )
+    random_state: int = field(
+        default=3407,
+        metadata={"help": "Random seed for reproducibility."}
+    )
+    lora_r: int = field(
+        default=16,
+        metadata={"help": "LoRA attention dimension (rank)."}
+    )
+    lora_alpha: int = field(
+        default=16,
+        metadata={"help": "LoRA alpha parameter."}
+    )
+    lora_dropout: float = field(
+        default=0.0,
+        metadata={"help": "LoRA dropout probability."}
+    )
+    target_modules: list[str] = field(
+        default_factory=lambda: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        metadata={"help": "List of module names to apply LoRA to."}
+    )
+    use_mock: bool = field(
+        default=False,
+        metadata={"help": "If True, bypasses model loading and simulates training (CPU safe)."}
+    )
+
 
 @dataclass
 class TrainConfig:
-    dataset_name: str = "Mariodb/movie-recommender-dataset"
-    output_dir: str = "outputs"
-    per_device_train_batch_size: int = 2
-    gradient_accumulation_steps: int = 4
-    warmup_steps: int = 10
-    num_train_epochs: int = 3
-    learning_rate: float = 2e-4
-    optim: str = "adamw_8bit"
-    weight_decay: float = 0.01
-    lr_scheduler_type: str = "linear"
-    seed: int = 3407
-    logging_steps: int = 25
-    save_strategy: str = "epoch"
-    save_total_limit: int = 2
+    """
+    Configuration for Data, Training, and Saving.
+    """
+    dataset_name: str = field(
+        metadata={"help": "The name of the dataset to use (via the datasets library)."}
+    )
+    output_dir: str = field(
+        default="outputs",
+        metadata={"help": "The output directory where the model predictions and checkpoints will be written."}
+    )
+    batch_size: int = field(
+        default=2,
+        metadata={"help": "Batch size per GPU/TPU core/CPU for training."}
+    )
+    gradient_accumulation_steps: int = field(
+        default=4,
+        metadata={"help": "Number of updates steps to accumulate before performing a backward/update pass."}
+    )
+    learning_rate: float = field(
+        default=2e-4,
+        metadata={"help": "The initial learning rate for AdamW."}
+    )
+    num_train_epochs: float = field(
+        default=1.0,
+        metadata={"help": "Total number of training epochs to perform."}
+    )
+    max_steps: int = field(
+        default=-1,
+        metadata={"help": "If > 0: set total number of training steps to perform. Overrides num_train_epochs."}
+    )
+    push_to_hub: bool = field(
+        default=False,
+        metadata={"help": "Whether to push the model to the Hugging Face Hub after training."}
+    )
+    hub_model_id: Optional[str] = field(
+        default=None,
+        metadata={"help": "The name of the repository to keep in sync with the local `output_dir`."}
+    )
+    dataset_text_column: str = field(
+        default="text",
+        metadata={"help": "The column name in the dataset containing the text data."}
+    )
+    dataset_num_samples: Optional[int] = field(
+        default=None,
+        metadata={"help": "Number of samples to use from the dataset for debugging/testing."}
+    )

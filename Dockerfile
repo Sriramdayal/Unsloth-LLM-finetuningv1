@@ -15,6 +15,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application code into the container
 COPY . .
 
-# Set the default command to open a bash shell
-# Users can then run their specific scripts from the shell
-CMD ["/bin/bash"]
+# Expose Gradio port
+EXPOSE 7860
+
+# Set the default command to run the Gradio app
+# Users can override this with "python scripts/cli.py ..." for headless mode
+CMD ["python", "scripts/app.py"]

@@ -1,4 +1,4 @@
-unsloth
+unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git
 trl
 transformers
 torch
@@ -6,3 +6,6 @@ peft
 bitsandbytes
 datasets
 accelerate
+gradio
+pandas
+huggingface_hub
