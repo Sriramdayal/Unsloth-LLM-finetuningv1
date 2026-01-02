@@ -49,84 +49,81 @@ Works for **instruction tuning, chat models, summarization, domain adaptation**,
 
 ---
 
-## � Refactored Project Usage
+## 🚀 Dual-Mode Usage
 
-This repository has been refactored into a maintainable Python package structure.
+This repository has been refactored into a maintainable Python package structure that supports two primary modes of operation.
 
-### 1. Install Dependencies
+### 1. Installation
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Run Training
+### 2. Mode 1: Headless CLI (Automation)
 
-To fine-tune the model on the Movie Recommender dataset:
+The CLI is designed for automated training pipelines and supports configuration via YAML/JSON files.
 
+**Basic Usage:**
 ```bash
-python scripts/run_training.py
+python scripts/cli.py --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --dataset_name "imdb"
 ```
 
-Configuration can be modified in `src/config.py`.
-
-### 3. Run Inference
-
-To test individual inference with a fine-tuned model (or the example LeetCoder adapter):
-
+**Using a Config File:**
 ```bash
-python scripts/run_inference.py
+python scripts/cli.py configs/example.yaml
 ```
 
+**Dry Run (Verify config without training):**
+```bash
+python scripts/cli.py --dry_run
+```
+
+### 3. Mode 2: No-Code Studio (Interactive)
+
+Launch the Gradio-based web interface for an interactive fine-tuning experience.
+
+```bash
+python scripts/app.py
+```
+*Open your browser at `http://localhost:7860`*
+
+The Studio provides tabs for:
+- **Model & Data**: Select base models and datasets.
+- **Training Params**: Configure LoRA rank, epochs, learning rate, etc.
+- **Monitor**: View real-time training logs.
 
 ---
 
 ## 🐳 Docker Usage
 
-Alternatively, you can run the project using Docker to avoid manual environment setup.
+Run the project using Docker to fully isolate the environment.
 
 ### Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) installed on your machine.
-- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) configured for GPU support.
+- [Docker](https://docs.docker.com/get-docker/) installed.
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) for GPU support.
 
 ### Building and Running
 
-1.  **Build the Docker image:**
-
-    ```bash
-    docker compose build
-    ```
-
-2.  **Run the container:**
+1.  **Start the Service (Default: Web Studio):**
 
     ```bash
     docker compose up -d
     ```
+    *Access the GUI at `http://localhost:7860`*
 
-3.  **Run Training/Inference:**
+2.  **Run CLI Commands inside Docker:**
 
     ```bash
-    # Enter the container
-    docker compose run --rm unsloth-app /bin/bash
-
-    # Run scripts inside
-    python scripts/run_training.py
+    # Run a dry run inside the container
+    docker compose run --rm unsloth-app python scripts/cli.py --dry_run
     ```
 
----
+3.  **Enter the container explicitly:**
 
-## �🔧 Installation
-
-```bash
-pip install unsloth transformers datasets accelerate peft bitsandbytes trl
-pip install compressed-tensors  # required for 4-bit
-```
-
-(Optional for speed)
-
-```bash
-pip install flash-attn
-```
+    ```bash
+    docker compose run --rm unsloth-app /bin/bash
+    ```
 
 ---
 
