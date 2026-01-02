@@ -94,6 +94,27 @@ The Studio provides tabs for:
 
 ---
 
+## ☁️ Run on Google Colab
+
+You can easily run this project on Google Colab by cloning the repository.
+
+1.  **Open a new Colab Notebook.**
+2.  **Run the following in a code cell to clone and install:**
+
+    ```python
+    !git clone https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
+    %cd Unsloth-LLM-finetuningv1
+    !pip install -r requirements.txt
+    ```
+
+3.  **Run Training (CLI Mode):**
+
+    ```python
+    !python scripts/cli.py --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --dataset_name "imdb"
+    ```
+
+---
+
 ## 🐳 Docker Usage
 
 Run the project using Docker to fully isolate the environment.
