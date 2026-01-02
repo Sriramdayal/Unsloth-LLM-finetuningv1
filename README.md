@@ -49,18 +49,102 @@ Works for **instruction tuning, chat models, summarization, domain adaptation**,
 
 ---
 
-## 🔧 Installation
+## 🚀 Dual-Mode Usage
+
+This repository has been refactored into a maintainable Python package structure that supports two primary modes of operation.
+
+### 1. Installation
 
 ```bash
-pip install unsloth transformers datasets accelerate peft bitsandbytes trl
-pip install compressed-tensors  # required for 4-bit
+pip install -r requirements.txt
 ```
 
-(Optional for speed)
+### 2. Mode 1: Headless CLI (Automation)
+
+The CLI is designed for automated training pipelines and supports configuration via YAML/JSON files.
+
+**Basic Usage:**
+```bash
+python scripts/cli.py --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --dataset_name "imdb"
+```
+
+**Using a Config File:**
+```bash
+python scripts/cli.py configs/example.yaml
+```
+
+**Dry Run (Verify config without training):**
+```bash
+python scripts/cli.py --dry_run
+```
+
+### 3. Mode 2: No-Code Studio (Interactive)
+
+Launch the Gradio-based web interface for an interactive fine-tuning experience.
 
 ```bash
-pip install flash-attn
+python scripts/app.py
 ```
+*Open your browser at `http://localhost:7860`*
+
+The Studio provides tabs for:
+- **Model & Data**: Select base models and datasets.
+- **Training Params**: Configure LoRA rank, epochs, learning rate, etc.
+- **Monitor**: View real-time training logs.
+
+---
+
+## ☁️ Run on Google Colab
+
+You can easily run this project on Google Colab by cloning the repository.
+
+1.  **Open a new Colab Notebook.**
+2.  **Run the following in a code cell to clone and install:**
+
+    ```python
+    !git clone https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
+    %cd Unsloth-LLM-finetuningv1
+    !pip install -r requirements.txt
+    ```
+
+3.  **Run Training (CLI Mode):**
+
+    ```python
+    !python scripts/cli.py --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --dataset_name "imdb"
+    ```
+
+---
+
+## 🐳 Docker Usage
+
+Run the project using Docker to fully isolate the environment.
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) installed.
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) for GPU support.
+
+### Building and Running
+
+1.  **Start the Service (Default: Web Studio):**
+
+    ```bash
+    docker compose up -d
+    ```
+    *Access the GUI at `http://localhost:7860`*
+
+2.  **Run CLI Commands inside Docker:**
+
+    ```bash
+    # Run a dry run inside the container
+    docker compose run --rm unsloth-app python scripts/cli.py --dry_run
+    ```
+
+3.  **Enter the container explicitly:**
+
+    ```bash
+    docker compose run --rm unsloth-app /bin/bash
+    ```
 
 ---
 
@@ -142,7 +226,7 @@ model = FastLanguageModel.for_training(model)
 from trl import SFTTrainer
 from transformers import TrainingArguments
 
-#tweak or add the parameters according to need, read the TRL,LORA,UNSLOTH documentation for mor info
+#tweak or add the parameters according to need, read the TRL,LORA,UNSLOTH documentation for meinfo
 trainer = SFTTrainer(
     model=model,
     tokenizer=tokenizer,
@@ -168,7 +252,7 @@ trainer.train()
 
 ---
 
-## 🔄 Merge LoRA Weights (Optional)
+## � Merge LoRA Weights (Optional)
 
 ### Merge LoRA + Base for Deployment
 model deployment in huggingface  example: click below badge to visit

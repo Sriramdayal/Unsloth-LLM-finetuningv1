@@ -1,0 +1,18 @@
+services:
+  unsloth-app:
+    build: .
+    ports:
+      - "7860:7860"
+    volumes:
+      - .:/app
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    shm_size: 4gb # Increased shared memory for large models
+    command: python scripts/app.py
+    stdin_open: true # docker run -i
+    tty: true # docker run -t
