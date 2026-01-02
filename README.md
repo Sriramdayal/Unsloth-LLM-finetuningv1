@@ -115,7 +115,38 @@ You can easily run this project on Google Colab by cloning the repository.
 
 ---
 
+## 🐳 Docker Usage
 
+Run the project using Docker to fully isolate the environment.
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) installed.
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) for GPU support.
+
+### Building and Running
+
+1.  **Start the Service (Default: Web Studio):**
+
+    ```bash
+    docker compose up -d
+    ```
+    *Access the GUI at `http://localhost:7860`*
+
+2.  **Run CLI Commands inside Docker:**
+
+    ```bash
+    # Run a dry run inside the container
+    docker compose run --rm unsloth-app python scripts/cli.py --dry_run
+    ```
+
+3.  **Enter the container explicitly:**
+
+    ```bash
+    docker compose run --rm unsloth-app /bin/bash
+    ```
+
+---
 
 ## 📥 Dataset Preparation
 
