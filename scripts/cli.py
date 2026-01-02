@@ -94,7 +94,7 @@ def main():
     print("Processing Data...")
     processor = DataProcessor(model_config, train_config, tokenizer)
     processor.load_dataset()
-    processor.validate_columns(required_columns=["instruction", "input", "output"])
+    processor.validate_columns()
     
     dataset = processor.format_and_tokenize(style="alpaca")
 

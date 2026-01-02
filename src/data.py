@@ -41,16 +41,30 @@ class DataProcessor:
         except Exception as e:
             raise RuntimeError(f"Failed to load dataset {self.train_config.dataset_name}: {e}")
 
-    def validate_columns(self, required_columns: List[str]):
+    def validate_columns(self, required_columns: Optional[List[str]] = None):
         """
         Validates that the dataset contains the required columns.
+        If required_columns is None, it attempts to validate based on available auto-detection logic.
         """
         if not self.raw_dataset:
             raise ValueError("Dataset not loaded. Call load_dataset() first.")
         
-        missing = [col for col in required_columns if col not in self.raw_dataset.column_names]
-        if missing:
-            raise ValueError(f"Dataset missing required columns: {missing}. Available: {self.raw_dataset.column_names}")
+        if required_columns is not None:
+            missing = [col for col in required_columns if col not in self.raw_dataset.column_names]
+            if missing:
+                raise ValueError(f"Dataset missing required columns: {missing}. Available: {self.raw_dataset.column_names}")
+        else:
+            # Dynamic Validation
+            # 1. Check for pre-formatted text column
+            text_column = self.train_config.dataset_text_column
+            if text_column in self.raw_dataset.column_names:
+                return # Valid
+
+            # 2. Check if auto-mapping works
+            try:
+                self._auto_detect_mapping()
+            except ValueError as e:
+                raise ValueError(f"Dataset validation failed. Could not detect standard columns or pre-formatted text column.\nDetails: {e}")
 
     def get_preview(self, n: int = 3) -> pd.DataFrame:
         """
