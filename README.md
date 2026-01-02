@@ -114,10 +114,6 @@ You can easily run this project on Google Colab by cloning the repository.
     ```
 
 ---
-
-
----
-
 ## 📥 Dataset Preparation
 
 Your dataset should have a `"text"` field for SFT-style training.
