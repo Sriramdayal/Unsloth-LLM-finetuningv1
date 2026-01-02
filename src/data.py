@@ -92,12 +92,20 @@ class DataProcessor:
                 mapping["input"] = cand
                 break
         
-        # Validation
-        if "instruction" not in mapping:
-             raise ValueError(f"Could not automatically detect an 'instruction' column. Candidates checked: {instruction_candidates}. Available columns: {columns}")
-        
-        if "output" not in mapping:
-             raise ValueError(f"Could not automatically detect an 'output' column. Candidates checked: {output_candidates}. Available columns: {columns}")
+        # Validation & Fallback
+        if "instruction" not in mapping or "output" not in mapping:
+             # Try positional fallback
+             if len(columns) >= 2:
+                  print(f"WARNING: Automatic column detection failed for standard keys. Falling back to positional mapping.")
+                  mapping["instruction"] = columns[0]
+                  mapping["output"] = columns[1]
+                  mapping["input"] = None
+                  print(f"Positional Fallback: instruction='{mapping['instruction']}', output='{mapping['output']}'")
+             else:
+                  if "instruction" not in mapping:
+                       raise ValueError(f"Could not automatically detect an 'instruction' column. Candidates checked: {instruction_candidates}. Available columns: {columns}")
+                  if "output" not in mapping:
+                       raise ValueError(f"Could not automatically detect an 'output' column. Candidates checked: {output_candidates}. Available columns: {columns}")
         
         # Default 'input' to None if not found (will need handling in formatting)
         if "input" not in mapping:
