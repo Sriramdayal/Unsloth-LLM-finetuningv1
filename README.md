@@ -47,11 +47,14 @@ This repo provides a **general-purpose template** for finetuning HuggingFace mod
 
 Works for **instruction tuning, chat models, summarization, domain adaptation**, and more.
 
+> [!NEW]
+> **Dynamic Dataset Support**: The system now automatically detects your dataset columns or falls back to sensible defaults. No strictly formatted "instruction/output" columns required!
+
 ---
 
-## 🚀 Dual-Mode Usage
+## 🚀 Quick Start: Usage Modes
 
-This repository has been refactored into a maintainable Python package structure that supports two primary modes of operation.
+This repository supports two primary modes of operation.
 
 ### 1. Installation
 
@@ -61,7 +64,7 @@ pip install -r requirements.txt
 
 ### 2. Mode 1: Headless CLI (Automation)
 
-The CLI is designed for automated training pipelines and supports configuration via YAML/JSON files.
+The CLI is designed for automated training pipelines and reproducible runs.
 
 **Basic Usage:**
 ```bash
@@ -73,10 +76,7 @@ python scripts/cli.py --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --datas
 python scripts/cli.py configs/example.yaml
 ```
 
-**Dry Run (Verify config without training):**
-```bash
-python scripts/cli.py --dry_run
-```
+📖 **[Read the Full CLI Manual](cli-manual.md)** for detailed reference, including dry runs and all argument options.
 
 ### 3. Mode 2: No-Code Studio (Interactive)
 
@@ -86,11 +86,6 @@ Launch the Gradio-based web interface for an interactive fine-tuning experience.
 python scripts/app.py
 ```
 *Open your browser at `http://localhost:7860`*
-
-The Studio provides tabs for:
-- **Model & Data**: Select base models and datasets.
-- **Training Params**: Configure LoRA rank, epochs, learning rate, etc.
-- **Monitor**: View real-time training logs.
 
 ---
 
@@ -114,41 +109,35 @@ You can easily run this project on Google Colab by cloning the repository.
     ```
 
 ---
-## 📥 Dataset Preparation
 
-Your dataset should have a `"text"` field for SFT-style training.
+## 📘 Python API Guide
+
+If you prefer to write your own scripts or notebooks using the codebase as a library, follow these examples.
+
+### 1. Dataset Preparation
+
+Your dataset should have a `"text"` field for SFT-style training, OR use the system's dynamic column detection.
 
 ```python
 from datasets import load_dataset
 
-ds = load_dataset("fromHuggingfacedatasets/dataset_name")
+ds = load_dataset("your_dataset")
 
+# Optional: Manually format if you need specific templating
 def format_example(row):
     return {
-        "text": f"""### Instruction:
-{row.get("instruction", "")}
-
-### Input:
-{row.get("input", "")}
-
-### Response:
-{row.get("output", "")}"""
+        "text": f"### Instruction:\n{row['instruction']}\n\n### Response:\n{row['output']}"
     }
 
 train_ds = ds["train"].map(format_example)
-train_ds = train_ds.remove_columns(
-    [c for c in train_ds.column_names if c != "text"]
-)
 ```
 
----
-
-## 🧠 Load Model with Unsloth
+### 2. Load Model
 
 ```python
 from unsloth import FastLanguageModel
 
-model_name = "fromHuggingfacemodels/model-herewith1bparamsandunslothsupportedmodels"
+model_name = "unsloth/mistral-7b-bnb-4bit"
 max_seq_len = 2048
 
 model, tokenizer = FastLanguageModel.from_pretrained(
@@ -158,41 +147,25 @@ model, tokenizer = FastLanguageModel.from_pretrained(
 )
 ```
 
----
-
-## 🔌 Add LoRA Adapters
+### 3. Add LoRA Adapters
 
 ```python
 model = FastLanguageModel.get_peft_model(
     model,
-    r=64,
-    lora_alpha=128,
+    r=16,
+    lora_alpha=16,
     lora_dropout=0,
-    target_modules=[
-        "q_proj","k_proj","v_proj","o_proj",
-        "gate_proj","up_proj","down_proj",
-    ],
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
     use_gradient_checkpointing="unsloth",
 )
 ```
 
----
-
-## ⚡ Enable Fast Training
-
-```python
-model = FastLanguageModel.for_training(model)
-```
-
----
-
-## 🏋️ Training with TRL
+### 4. Training (TRL)
 
 ```python
 from trl import SFTTrainer
 from transformers import TrainingArguments
 
-#tweak or add the parameters according to need, read the TRL,LORA,UNSLOTH documentation for meinfo
 trainer = SFTTrainer(
     model=model,
     tokenizer=tokenizer,
@@ -200,58 +173,34 @@ trainer = SFTTrainer(
     dataset_text_field="text",
     max_seq_length=max_seq_len,
     args=TrainingArguments(
+        output_dir="outputs",
         per_device_train_batch_size=2,
         gradient_accumulation_steps=4,
-        warmup_steps=50,
-        num_train_epochs=3,
+        max_steps=60,
         learning_rate=2e-4,
         fp16=True,
-        logging_steps=25,
-        output_dir="outputs",
-        optim="adamw_8bit",
-        save_strategy="epoch",
+        logging_steps=1,
     ),
 )
-
 trainer.train()
 ```
 
----
-
-## � Merge LoRA Weights (Optional)
-
-### Merge LoRA + Base for Deployment
-model deployment in huggingface  example: click below badge to visit
-<!-- HuggingFace Model Badge -->
-  <a href="https://huggingface.co/black279/Qwen_LeetCoder" target="_blank">
-    <img src="https://img.shields.io/badge/HuggingFace-Qwen_LeetCoder-orange?style=flat-square" alt="HuggingFace Model"/>
-  </a>
-</p>
+### 5. Inference
 
 ```python
+FastLanguageModel.for_inference(model)
+inputs = tokenizer(["Correct syntax error: import numpys as np"], return_tensors="pt").to("cuda")
+outputs = model.generate(**inputs, max_new_tokens=64)
+print(tokenizer.decode(outputs[0]))
+```
+
+### 6. Merge & Export
+
+```python
+# Merge content
 merged = model.merge_and_unload()
 merged.save_pretrained("outputs/merged")
 tokenizer.save_pretrained("outputs/merged")
-```
-
-### Save LoRA only
-
-```python
-model.save_pretrained("outputs/lora")
-tokenizer.save_pretrained("outputs/lora")
-```
-
----
-
-## 🧪 Inference Example
-
-```python
-prompt = "Explain reinforcement learning in simple terms."
-
-inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
-outputs = model.generate(**inputs, max_new_tokens=200)
-
-print(tokenizer.decode(outputs[0], skip_special_tokens=True))
 ```
 
 ---
@@ -272,7 +221,6 @@ print(tokenizer.decode(outputs[0], skip_special_tokens=True))
 ## ⭐ Notes & Tips
 
 * Reduce dataset size if needed:
-
 ```python
 train_ds = train_ds.shuffle(seed=42).select(range(100_000))
 ```
@@ -294,6 +242,4 @@ MIT
 * [HuggingFace Transformers](https://github.com/huggingface/transformers)
 * [TRL](https://github.com/huggingface/trl)
 * [PEFT](https://github.com/huggingface/peft)
-
----
 
