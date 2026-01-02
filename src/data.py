@@ -117,6 +117,16 @@ class DataProcessor:
         if not self.raw_dataset:
             raise ValueError("Dataset not loaded. Call load_dataset() first.")
 
+        # 0. Check for Pre-formatted Text Column
+        text_column = self.train_config.dataset_text_column
+        if text_column in self.raw_dataset.column_names:
+            print(f"DEBUG: Found pre-formatted text column '{text_column}'. Skipping tokenization/formatting step.")
+            self.formatted_dataset = self.raw_dataset
+            # Ensure the text column is actually named "text" for downstream compatibility if it isn't already
+            if text_column != "text":
+                self.formatted_dataset = self.formatted_dataset.rename_column(text_column, "text")
+            return self.formatted_dataset
+
         # Auto-detect mapping if not provided
         if mapping is None:
             mapping = self._auto_detect_mapping()
