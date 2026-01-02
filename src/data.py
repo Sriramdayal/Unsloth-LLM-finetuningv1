@@ -61,6 +61,50 @@ class DataProcessor:
         
         return self.raw_dataset.select(range(min(n, len(self.raw_dataset)))).to_pandas()
 
+    def _auto_detect_mapping(self) -> Dict[str, str]:
+        """
+        Heuristically detects column names for instruction, input, and output.
+        """
+        if not self.raw_dataset:
+            raise ValueError("Dataset not loaded.")
+        
+        columns = self.raw_dataset.column_names
+        mapping = {}
+
+        # 1. Detect Instruction Column
+        instruction_candidates = ["instruction", "prompt", "question", "query", "input_text"]
+        for cand in instruction_candidates:
+            if cand in columns:
+                mapping["instruction"] = cand
+                break
+        
+        # 2. Detect Output Column
+        output_candidates = ["output", "response", "answer", "completion", "solution", "target"]
+        for cand in output_candidates:
+            if cand in columns:
+                mapping["output"] = cand
+                break
+
+        # 3. Detect Input Column (Optional)
+        input_candidates = ["input", "context", "system", "history"]
+        for cand in input_candidates:
+            if cand in columns:
+                mapping["input"] = cand
+                break
+        
+        # Validation
+        if "instruction" not in mapping:
+             raise ValueError(f"Could not automatically detect an 'instruction' column. Candidates checked: {instruction_candidates}. Available columns: {columns}")
+        
+        if "output" not in mapping:
+             raise ValueError(f"Could not automatically detect an 'output' column. Candidates checked: {output_candidates}. Available columns: {columns}")
+        
+        # Default 'input' to None if not found (will need handling in formatting)
+        if "input" not in mapping:
+            mapping["input"] = None
+
+        return mapping
+
     def format_and_tokenize(self, mapping: Optional[Dict[str, str]] = None, style: str = "alpaca"):
         """
         Formats and tokenizes the dataset.
@@ -73,21 +117,25 @@ class DataProcessor:
         if not self.raw_dataset:
             raise ValueError("Dataset not loaded. Call load_dataset() first.")
 
-        # Default Alpaca mapping
+        # Auto-detect mapping if not provided
         if mapping is None:
-            mapping = {
-                "instruction": "instruction",
-                "input": "input",
-                "output": "output"
-            }
+            mapping = self._auto_detect_mapping()
+            print(f"DEBUG: Auto-detected mapping: {mapping}")
 
         # Validate mapping keys based on style if needed, but for now strict validation on keys existing in dataset
-        self.validate_columns(list(mapping.values()))
+        # We only strictly require instruction and output. Input is optional.
+        required_cols = [mapping["instruction"], mapping["output"]]
+        self.validate_columns(required_cols)
 
         def formatting_prompts_func(examples):
             instructions = examples[mapping["instruction"]]
-            inputs = examples[mapping["input"]]
             outputs = examples[mapping["output"]]
+            
+            if mapping["input"] and mapping["input"] in examples:
+                inputs = examples[mapping["input"]]
+            else:
+                inputs = [None] * len(instructions)
+
             texts = []
             
             # Standard Alpaca Format
@@ -130,6 +178,8 @@ class DataProcessor:
             pass
             
         return self.formatted_dataset
+
+
 
     def apply_template(self):
         """
