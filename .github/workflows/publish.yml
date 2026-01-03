@@ -12,13 +12,14 @@ jobs:
       name: pypi
       url: https://pypi.org/p/unsloth-finetuning
     permissions:
-      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write  # MANDATORY for Trusted Publishing
+      contents: read
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/setup-python@v5
       with:
         python-version: "3.10"
 
