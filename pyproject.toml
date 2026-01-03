@@ -22,6 +22,9 @@ dependencies = [
     "huggingface_hub",
 ]
 
+[project.scripts]
+unsloth-cli = "src.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*"]
