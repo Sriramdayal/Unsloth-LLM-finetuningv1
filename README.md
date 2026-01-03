@@ -37,7 +37,7 @@
 
 ## 📌 Overview
 
-This repo provides a **general-purpose template** for finetuning HuggingFace models using:
+This repo provides a **end-to-end-Pipeline** for finetuning HuggingFace models using:
 
 * ⚡ **Unsloth-optimized kernels** (2× faster)
 * 🎯 **LoRA adapters** (low-cost parameter-efficient tuning)
@@ -54,7 +54,7 @@ Works for **instruction tuning, chat models, summarization, domain adaptation**,
 
 ## 🚀 Quick Start: Usage Modes
 
-This repository supports two primary modes of operation.
+This repository supports two primary modes of operation.(create a virtualenv or uv to run  commands)
 
 ### 1. Installation
 
