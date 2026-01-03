@@ -110,7 +110,7 @@ You can easily run this project on Google Colab by cloning the repository.
 
 ---
 
-## 📘 Python API Guide
+## 📘 Python Scripting Guide
 
 If you prefer to write your own scripts or notebooks using the codebase as a library, follow these examples.
 
