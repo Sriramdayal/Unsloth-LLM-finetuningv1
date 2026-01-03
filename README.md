@@ -54,7 +54,11 @@ Works for **instruction tuning, chat models, summarization, domain adaptation**,
 
 ## 🚀 Quick Start: Usage Modes
 
-This repository supports two primary modes of operation.(create a virtualenv or uv to run  commands)
+This repository supports two primary modes of operation.(create a virtualenv using uv:  use  uv run 
+```bash
+uv run pip install -r requirements.txt
+```
+)
 
 ### 1. Installation
 
