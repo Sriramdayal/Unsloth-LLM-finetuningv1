@@ -112,96 +112,10 @@ You can easily run this project on Google Colab by cloning the repository.
 
 ## 📘 Python API Guide
 
-If you prefer to write your own scripts or notebooks using the codebase as a library, follow these examples.
+For detailed instructions on using this repository as a Python library (including `DataProcessor`, configuration, and custom training loops), please refer to the dedicated documentation:
 
-### 1. Dataset Preparation
+👉 **[Read the Python API Documentation](documentation.md)**
 
-Your dataset should have a `"text"` field for SFT-style training, OR use the system's dynamic column detection.
-
-```python
-from datasets import load_dataset
-
-ds = load_dataset("your_dataset")
-
-# Optional: Manually format if you need specific templating
-def format_example(row):
-    return {
-        "text": f"### Instruction:\n{row['instruction']}\n\n### Response:\n{row['output']}"
-    }
-
-train_ds = ds["train"].map(format_example)
-```
-
-### 2. Load Model
-
-```python
-from unsloth import FastLanguageModel
-
-model_name = "unsloth/mistral-7b-bnb-4bit"
-max_seq_len = 2048
-
-model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name,
-    load_in_4bit=True,
-    max_seq_length=max_seq_len,
-)
-```
-
-### 3. Add LoRA Adapters
-
-```python
-model = FastLanguageModel.get_peft_model(
-    model,
-    r=16,
-    lora_alpha=16,
-    lora_dropout=0,
-    target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-    use_gradient_checkpointing="unsloth",
-)
-```
-
-### 4. Training (TRL)
-
-```python
-from trl import SFTTrainer
-from transformers import TrainingArguments
-
-trainer = SFTTrainer(
-    model=model,
-    tokenizer=tokenizer,
-    train_dataset=train_ds,
-    dataset_text_field="text",
-    max_seq_length=max_seq_len,
-    args=TrainingArguments(
-        output_dir="outputs",
-        per_device_train_batch_size=2,
-        gradient_accumulation_steps=4,
-        max_steps=60,
-        learning_rate=2e-4,
-        fp16=True,
-        logging_steps=1,
-    ),
-)
-trainer.train()
-```
-
-### 5. Inference
-
-```python
-FastLanguageModel.for_inference(model)
-inputs = tokenizer(["Correct syntax error: import numpys as np"], return_tensors="pt").to("cuda")
-outputs = model.generate(**inputs, max_new_tokens=64)
-print(tokenizer.decode(outputs[0]))
-```
-
-### 6. Merge & Export
-
-```python
-# Merge content
-merged = model.merge_and_unload()
-merged.save_pretrained("outputs/merged")
-tokenizer.save_pretrained("outputs/merged")
-```
 
 ---
 
