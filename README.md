@@ -56,7 +56,7 @@ Works for **instruction tuning, chat models, summarization, domain adaptation**,
 
 This repository supports two primary modes of operation.(create a virtualenv using uv:  use  uv run 
 ```bash
-uv run pip install -r requirements.txt
+uv run  before_all_comands
 ```
 )
 
