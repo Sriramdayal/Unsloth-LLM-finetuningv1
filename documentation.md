@@ -6,7 +6,7 @@ This guide provides detailed instructions on how to use `unsloth-finetuning` as 
 
 ### From PyPI
 ```bash
-pip install unsloth-finetuning
+pip install git+https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
 ```
 
 ### From Source
