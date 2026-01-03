@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "unsloth_finetuning"
+version = "0.1.0"
+description = "Enterprise Pipeline for Unsloth LLM Finetuning"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git",
+    "trl",
+    "transformers",
+    "torch",
+    "peft",
+    "bitsandbytes",
+    "datasets",
+    "accelerate",
+    "gradio",
+    "pandas",
+    "huggingface_hub",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
