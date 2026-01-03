@@ -54,11 +54,11 @@ Works for **instruction tuning, chat models, summarization, domain adaptation**,
 
 ## 🚀 Quick Start: Usage Modes
 
-This repository supports two primary modes of operation.(create a virtualenv using uv:  use  uv run 
+This repository supports two primary modes of operation.(create a virtualenv: if using uv) 
 ```bash
 uv run  before_all_comands
 ```
-)
+
 
 ### 1. Installation
 
