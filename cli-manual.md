@@ -26,9 +26,9 @@ unsloth-cli \
     --num_train_epochs 1
 ```
 
-Or via python module:
+Or via python module (since the package is named `src` in source):
 ```bash
-python -m src.cli ...
+python -m src ...
 ```
 
 
