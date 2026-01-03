@@ -7,21 +7,30 @@ The CLI is located at `scripts/cli.py` and is designed for automated, reproducib
 ## 1. Quick Start
 
 ### Installation
-Ensure you have installed the dependencies:
+Ensure you have installed the package:
 ```bash
-pip install -r requirements.txt
+# From PyPI (coming soon)
+pip install unsloth-finetuning
+
+# OR from source
+pip install -e .
 ```
 
 ### Basic Usage
-Run the script with Python. You can pass arguments directly via command line flags.
+You can run the CLI directly using the installed command:
 
 ```bash
-python scripts/cli.py \
+unsloth-cli \
     --model_name_or_path "unsloth/llama-3-8b-bnb-4bit" \
     --dataset_name "yahma/alpaca-cleaned" \
-    --output_dir "outputs/my_run" \
     --num_train_epochs 1
 ```
+
+Or via python module:
+```bash
+python -m src.cli ...
+```
+
 
 ### Dry Run
 Use the `--dry_run` flag to load the model and dataset, perform validation, and verify formatting *without* starting the actual training loop. This is useful for checking configuration before a long job.

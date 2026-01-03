@@ -20,12 +20,10 @@ from typing import Optional
 import torch
 from transformers import HfArgumentParser
 
-# Ensure src is in python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from src.config import ModelConfig, TrainConfig
-from src.data import DataProcessor
-from src.train import train_model
+# Removed sys.path hack as we are now a package
+from .config import ModelConfig, TrainConfig
+from .data import DataProcessor
+from .train import train_model
 
 def main():
     parser = HfArgumentParser((ModelConfig, TrainConfig))
