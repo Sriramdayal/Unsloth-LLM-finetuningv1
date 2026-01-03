@@ -110,7 +110,7 @@ You can easily run this project on Google Colab by cloning the repository.
 
 ---
 
-## 📘 Python Scripting Guide
+## 📘 Python API Guide
 
 For detailed instructions on using this repository as a Python library (including `DataProcessor`, configuration, and custom training loops), please refer to the dedicated documentation:
 
