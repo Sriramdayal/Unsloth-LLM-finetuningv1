@@ -82,7 +82,7 @@ python scripts/cli.py configs/example.yaml
 
 📖 **[Read the Full CLI Manual](cli-manual.md)** for detailed reference, including dry runs and all argument options.
 
-### 3. Mode 2: No-Code Studio (Interactive)
+### 3. Mode 2: No-Code Studio (Interactive)-[Beta]
 
 Launch the Gradio-based web interface for an interactive fine-tuning experience.
 
