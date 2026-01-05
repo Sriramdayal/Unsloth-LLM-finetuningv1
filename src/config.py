@@ -96,3 +96,7 @@ class TrainConfig:
         default=None,
         metadata={"help": "Number of samples to use from the dataset for debugging/testing."}
     )
+    dry_run: bool = field(
+        default=False,
+        metadata={"help": "If True, exits after data processing without training."}
+    )
