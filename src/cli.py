@@ -1,3 +1,4 @@
+
 """
 Headless Automation CLI for Unsloth Enterprise Pipeline.
 Supports generic config loading (YAML/JSON) and dry runs.
@@ -5,18 +6,20 @@ Supports generic config loading (YAML/JSON) and dry runs.
 
 import os
 import sys
+import logging
+from dataclasses import dataclass
+from typing import Optional
+
+# Unsloth MUST be imported before transformers/torch
 try:
     from unsloth import FastLanguageModel
 except ImportError:
     FastLanguageModel = None
 except NotImplementedError:
-    # Unsloth raises this on CPU
     FastLanguageModel = None
 except Exception:
     FastLanguageModel = None
 
-from dataclasses import dataclass
-from typing import Optional
 import torch
 from transformers import HfArgumentParser
 
@@ -24,6 +27,13 @@ from transformers import HfArgumentParser
 from .config import ModelConfig, TrainConfig
 from .data import DataProcessor
 from .train import train_model
+
+# Configure Logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
 
 def main():
     parser = HfArgumentParser((ModelConfig, TrainConfig))
@@ -34,38 +44,29 @@ def main():
     else:
         model_config, train_config = parser.parse_args_into_dataclasses()
 
-    # Add a custom arguments for dry_run via argparse if not in dataclass (cleaner separation)
-    # Or checking environment variable, but here we can check a simple flag manually or add to config if needed permanently.
-    # For now, let's look for a specialized flag in sys.argv that HfArgumentParser ignores or add a dummy class.
-    
-    # Actually, let's just add it to the parser in a standard way using a helper dataclass
-    @dataclass
-    class CLIConfig:
-        dry_run: bool = False
-    
-    parser = HfArgumentParser((ModelConfig, TrainConfig, CLIConfig))
-    if len(sys.argv) == 2 and sys.argv[1].endswith((".json", ".yaml", ".yml")):
-         model_config, train_config, cli_config = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
-    else:
-        model_config, train_config, cli_config = parser.parse_args_into_dataclasses()
-
-    print(f"--- Configuration ---")
-    print(f"Model: {model_config.model_name_or_path}")
-    print(f"Dataset: {train_config.dataset_name}")
-    print(f"Dry Run: {cli_config.dry_run}")
-    print(f"Mock Mode: {model_config.use_mock}")
-    print(f"---------------------")
+    logger.info("--- Configuration ---")
+    logger.info(f"Model: {model_config.model_name_or_path}")
+    logger.info(f"Dataset: {train_config.dataset_name}")
+    logger.info(f"Dry Run: {train_config.dry_run}")
+    logger.info(f"Mock Mode: {model_config.use_mock}")
+    logger.info("---------------------")
 
     # 1. Load Model & Tokenizer
     if model_config.use_mock:
-        print("[MOCK] Loading dummy tokenizer...")
+        logger.info("[MOCK] Loading dummy tokenizer...")
         from transformers import AutoTokenizer
         # Use a small tokenizer (gpt2) for testing data processing without downloading 7B params
         tokenizer = AutoTokenizer.from_pretrained("gpt2")
         tokenizer.pad_token = tokenizer.eos_token
         model = None # No model needed for mock training loop logic in train.py
     else:
-        print("Loading Model...")
+        if FastLanguageModel is None:
+            raise RuntimeError(
+                "FastLanguageModel is not available. This is likely because Unsloth is not installed "
+                "correctly or no GPU is detected. Please install Unsloth with GPU support or use "
+                "--use_mock True to run in mock mode."
+            )
+        logger.info("Loading Model...")
         model, tokenizer = FastLanguageModel.from_pretrained(
             model_name = model_config.model_name_or_path,
             max_seq_length = model_config.max_seq_length,
@@ -96,8 +97,8 @@ def main():
     
     dataset = processor.format_and_tokenize(style="alpaca")
 
-    if cli_config.dry_run:
-        print("Dry run completed successfully. Data and Model loaded. Exiting.")
+    if train_config.dry_run:
+        logger.info("Dry run completed successfully. Data and Model loaded. Exiting.")
         return
 
     # 4. Training

@@ -5,11 +5,18 @@ Handles dataset loading, validation, formatting, and previewing.
 
 try:
     from unsloth.chat_templates import get_chat_template
+except ImportError:
+    get_chat_template = None
+except NotImplementedError:
+    get_chat_template = None
 except Exception:
     get_chat_template = None
-from datasets import load_dataset, Dataset
+
+import logging
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
-from typing import Dict, Optional, List, Any
+from datasets import load_dataset, Dataset
 try:
     from .config import ModelConfig, TrainConfig
 except ImportError:

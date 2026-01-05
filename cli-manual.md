@@ -2,45 +2,54 @@
 
 This manual provides detailed instructions on how to use the headless command-line interface (CLI) for the Unsloth Enterprise Pipeline. 
 
-The CLI is located at `scripts/cli.py` and is designed for automated, reproducible training runs without a GUI.
+The CLI is located at `src/cli.py` and is designed for automated, reproducible training runs without a GUI.
 
 ## 1. Quick Start
 
 ### Installation
-Ensure you have installed the package:
-```bash
-# From PyPI 
-pip install git+https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
+This project uses `uv` for dependency management, but standard `pip` is also supported.
 
-# OR from source
+**Using `pip`:**
+```bash
 pip install -e .
 ```
 
-### Basic Usage
-You can run the CLI directly using the installed command:
-
+**Using `uv` (Recommended):**
 ```bash
-unsloth-cli \
+uv sync
+```
+
+### Basic Usage
+You can run the CLI as a python module or via specific scripts depending on your environment.
+
+**Standard Run (GPU Required):**
+```bash
+# Via python module
+python -m src.cli \
     --model_name_or_path "unsloth/llama-3-8b-bnb-4bit" \
     --dataset_name "yahma/alpaca-cleaned" \
     --num_train_epochs 1
 ```
 
-Or via python module:
+**Using `uv`:**
 ```bash
-python -m src.cli ...
+uv run python -m src.cli ...
 ```
 
+### Dry Run & Mock Mode (CPU/CI Friendly)
+If you are running on a machine without a GPU (like a CI runner or basic VM), you **MUST** use `--use_mock True`. 
 
-### Dry Run
-Use the `--dry_run` flag to load the model and dataset, perform validation, and verify formatting *without* starting the actual training loop. This is useful for checking configuration before a long job.
+Use the `--dry_run True` flag to load the model and dataset, perform validation, and verify formatting *without* starting the actual training loop.
 
+**Example: Running on CPU (Mock Mode)**
 ```bash
-python scripts/cli.py \
+uv run python -m src.cli \
     --model_name_or_path "unsloth/llama-3-8b-bnb-4bit" \
     --dataset_name "yahma/alpaca-cleaned" \
-    --dry_run True
+    --dry_run True \
+    --use_mock True
 ```
+> **Note**: In Mock Mode, you might see warnings about Unsloth imports or optimizations. These can be safely ignored as Unsloth requires a GPU to fully initialize.
 
 ## 2. Configuration Files (Recommended)
 
@@ -62,11 +71,12 @@ gradient_accumulation_steps: 4
 learning_rate: 2.0e-4
 num_train_epochs: 3
 push_to_hub: false
+dry_run: false
 ```
 
 **Run with Config:**
 ```bash
-python scripts/cli.py config.yaml
+python -m src.cli config.yaml
 ```
 
 ## 3. Argument Reference
@@ -97,26 +107,23 @@ python scripts/cli.py config.yaml
 | `--dataset_num_samples`| int | `None` | Limit samples for debugging. |
 | `--output_dir` | str | `"outputs"` | Directory to save checkpoints. |
 | `--batch_size` | int | `2` | Batch size per device. |
-| `--grad_accum_steps` | int | `4` | Gradient accumulation steps. |
+| `--gradient_accumulation_steps` | int | `4` | Gradient accumulation steps. |
 | `--learning_rate` | float | `2e-4` | Initial learning rate. |
 | `--num_train_epochs` | float | `1.0` | Total training epochs. |
 | `--max_steps` | int | `-1` | Max steps (overrides epochs if > 0). |
 | `--push_to_hub` | bool | `False` | Push model to Hub after training. |
 | `--hub_model_id` | str | `None` | Repository name on Hub. |
 
-## 4. Advanced: Dataset Support
+## 4. Troubleshooting
 
-The CLI supports dynamic dataset columns:
-1.  **Pre-formatted**: If your dataset already has a `text` column (or whatever you set `--dataset_text_column` to), formatting is skipped.
-2.  **Standard**: Automatically detects `instruction`, `input` (optional), and `output` columns.
-3.  **Arbitrary**: If standard columns are not found, it falls back to using the **first column as instruction** and **second column as output**.
+**"AttributeError: 'NoneType' object has no attribute..."**
+- This usually means `Unsloth` failed to load because no GPU was detected.
+- **Fix**: Use `--use_mock True` if checking logic on CPU, or run on a GPU machine.
 
-## 5. Troubleshooting
-
-**"Dataset missing required columns"**
-- Ensure your dataset is not empty.
-- If using custom columns, rely on the automatic fallback or rename them to `instruction`/`output`.
-- If using pre-formatted data, ensure the column is named `text` or matched by `--dataset_text_column`.
+**"Unsloth should be imported before [transformers]"**
+- This warning is expected if running on CPU/Mock mode where Unsloth fails to initialize fully.
+- It can be ignored in Mock Mode.
+- On a GPU machine, ensure you are not importing `transformers` manually before `src.cli`.
 
 **"CUDA out of memory"**
 - Reduce `--batch_size`.
