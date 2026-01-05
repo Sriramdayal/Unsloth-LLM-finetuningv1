@@ -9,8 +9,8 @@ The CLI is located at `scripts/cli.py` and is designed for automated, reproducib
 ### Installation
 Ensure you have installed the package:
 ```bash
-# From PyPI (coming soon)
-pip install unsloth-finetuning
+# From PyPI 
+pip install git+https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
 
 # OR from source
 pip install -e .
