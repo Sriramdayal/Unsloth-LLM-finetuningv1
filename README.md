@@ -87,7 +87,7 @@ python src/cli.py configs/example.yaml
 Launch the Gradio-based web interface for an interactive fine-tuning experience.
 
 ```bash
-python src/app.py
+python scripts/app.py
 ```
 *Open your browser at `http://localhost:7860`*
 
