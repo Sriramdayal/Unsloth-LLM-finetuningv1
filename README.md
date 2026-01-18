@@ -72,12 +72,12 @@ The CLI is designed for automated training pipelines and reproducible runs.
 
 **Basic Usage:**
 ```bash
-python scripts/cli.py --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --dataset_name "imdb"
+python src/cli.py --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --dataset_name "imdb"
 ```
 
 **Using a Config File:**
 ```bash
-python scripts/cli.py configs/example.yaml
+python src/cli.py configs/example.yaml
 ```
 
 📖 **[Read the Full CLI Manual](cli-manual.md)** for detailed reference, including dry runs and all argument options.
@@ -87,7 +87,7 @@ python scripts/cli.py configs/example.yaml
 Launch the Gradio-based web interface for an interactive fine-tuning experience.
 
 ```bash
-python scripts/app.py
+python src/app.py
 ```
 *Open your browser at `http://localhost:7860`*
 
