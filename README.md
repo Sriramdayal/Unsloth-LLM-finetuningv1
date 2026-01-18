@@ -109,7 +109,7 @@ You can easily run this project on Google Colab by cloning the repository.
 3.  **Run Training (CLI Mode):**
 
     ```python
-    !python scripts/cli.py --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --dataset_name "imdb"
+    !python src/cli.py --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --dataset_name "imdb"
     ```
 
 ---
