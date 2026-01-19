@@ -56,7 +56,7 @@ Works for **instruction tuning, chat models, summarization, domain adaptation**,
 
 This repository supports two primary modes of operation.(create a virtualenv: if using uv) 
 ```bash
-uv run  before_all_commands
+uv run or uv  before_all_commands
 ```
 
 
