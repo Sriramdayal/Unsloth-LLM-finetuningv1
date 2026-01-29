@@ -60,24 +60,45 @@ uv run or uv  before_all_commands
 ```
 
 
-### 1. Installation
+### 1. Requirements
 
+- **Python 3.10+** (Required for modern Torch/Transformers compatibility)
+- **CUDA 12.1+** (For GPU-accelerated training)
+
+### 2. Installation
+
+**Standard Installation:**
 ```bash
-pip install -r requirements.txt
+pip install .
+```
+
+**GPU-Accelerated Installation (Local):**
+Installs with full local CUDA stack to avoid system-wide dependency issues.
+```bash
+pip install .[gpu] --extra-index-url https://download.pytorch.org/whl/cu121
+```
+or 
+```bash
+pip install -r requirements-gpu.txt
 ```
 
 ### 2. Mode 1: Headless CLI (Automation)
 
 The CLI is designed for automated training pipelines and reproducible runs.
 
-**Basic Usage:**
+**Basic Usage (via entry point):**
+```bash
+unsloth-cli --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --dataset_name "imdb"
+```
+
+**Basic Usage (via script):**
 ```bash
 python src/cli.py --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --dataset_name "imdb"
 ```
 
 **Using a Config File:**
 ```bash
-python src/cli.py configs/example.yaml
+unsloth-cli configs/example.yaml
 ```
 
 📖 **[Read the Full CLI Manual](cli-manual.md)** for detailed reference, including dry runs and all argument options.

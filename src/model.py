@@ -1,3 +1,4 @@
+import unsloth
 from unsloth import FastLanguageModel
 import torch
 from .config import ModelConfig

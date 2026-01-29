@@ -1,3 +1,5 @@
+import unsloth
+from unsloth import FastLanguageModel
 import torch
 
 def generate_response(model, tokenizer, prompt, max_new_tokens=256):
@@ -7,7 +9,6 @@ def generate_response(model, tokenizer, prompt, max_new_tokens=256):
     # Ensure model is in inference mode
     # For Unsloth generic models
     if hasattr(model, "for_inference"):
-        from unsloth import FastLanguageModel
         FastLanguageModel.for_inference(model)
     
     inputs = tokenizer.apply_chat_template(

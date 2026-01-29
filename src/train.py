@@ -1,16 +1,9 @@
+import unsloth
+from unsloth import FastLanguageModel
 """
 Training Engine for Unsloth Enterprise Pipeline.
 Handles model training with custom callbacks and memory management.
 """
-
-try:
-    from unsloth import FastLanguageModel
-except ImportError:
-    FastLanguageModel = None
-except NotImplementedError:
-    FastLanguageModel = None
-except Exception:
-    FastLanguageModel = None
 from trl import SFTTrainer
 from transformers import TrainingArguments
 import torch

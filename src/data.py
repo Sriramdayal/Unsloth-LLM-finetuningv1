@@ -1,16 +1,10 @@
+import unsloth
+from unsloth import FastLanguageModel
+from unsloth.chat_templates import get_chat_template
 """
 Data Processing Module for Unsloth Enterprise Pipeline.
 Handles dataset loading, validation, formatting, and previewing.
 """
-
-try:
-    from unsloth.chat_templates import get_chat_template
-except ImportError:
-    get_chat_template = None
-except NotImplementedError:
-    get_chat_template = None
-except Exception:
-    get_chat_template = None
 
 import logging
 from typing import Any, Dict, List, Optional

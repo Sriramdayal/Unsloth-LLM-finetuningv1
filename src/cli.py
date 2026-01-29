@@ -1,24 +1,10 @@
-
-"""
-Headless Automation CLI for Unsloth Enterprise Pipeline.
-Supports generic config loading (YAML/JSON) and dry runs.
-"""
-
+import unsloth
+from unsloth import FastLanguageModel
 import os
 import sys
 import logging
 from dataclasses import dataclass
 from typing import Optional
-
-# Unsloth MUST be imported before transformers/torch
-try:
-    from unsloth import FastLanguageModel
-except ImportError:
-    FastLanguageModel = None
-except NotImplementedError:
-    FastLanguageModel = None
-except Exception:
-    FastLanguageModel = None
 
 import torch
 from transformers import HfArgumentParser

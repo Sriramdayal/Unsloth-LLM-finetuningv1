@@ -1,14 +1,9 @@
+import unsloth
+from unsloth import FastLanguageModel
 """
 "No-Code" Fine-Tuning Studio (Gradio App).
 State-Aware GUI for interactive fine-tuning.
 """
-
-import os
-import sys
-try:
-    from unsloth import FastLanguageModel
-except Exception:
-    FastLanguageModel = None
 import gradio as gr
 import pandas as pd
 import threading

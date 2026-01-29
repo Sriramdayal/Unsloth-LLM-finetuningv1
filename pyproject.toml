@@ -7,12 +7,11 @@ name = "unsloth_finetuning"
 version = "v0.1.1"
 description = "Enterprise Pipeline for Unsloth LLM Finetuning"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
-    "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git",
+    "torch>=2.5.1",
+    "transformers>=4.45",
     "trl",
-    "transformers",
-    "torch",
     "peft",
     "bitsandbytes",
     "datasets",
@@ -20,6 +19,24 @@ dependencies = [
     "gradio",
     "pandas",
     "huggingface_hub",
+    "pyyaml",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "black", "isort"]
+gpu = [
+    "torch==2.5.1+cu121", 
+    "bitsandbytes",
+    "nvidia-cuda-runtime-cu12",
+    "nvidia-cuda-cupti-cu12",
+    "nvidia-cudnn-cu12",
+    "nvidia-cublas-cu12",
+    "nvidia-cuda-nvrtc-cu12",
+    "nvidia-curand-cu12",
+    "nvidia-cusolver-cu12",
+    "nvidia-cusparse-cu12",
+    "nvidia-nccl-cu12",
+    "nvidia-nvtx-cu12",
 ]
 
 [project.scripts]
