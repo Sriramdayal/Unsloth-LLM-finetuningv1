@@ -150,3 +150,37 @@ model.save_pretrained("outputs/lora_adapters")
 # Save Merged Model (GGUF/VLLM ready)
 model.save_pretrained_merged("outputs/merged_model", tokenizer, save_method="merged_16bit")
 ```
+
+## 7. CLI Integration API
+
+The CLI can be controlled programmatically using its configuration dataclasses. This is useful for building custom grid searches or automated orchestration scripts.
+
+### Programmatic Config Loading
+```python
+import unsloth
+from unsloth import FastLanguageModel
+from src.config import ModelConfig, TrainConfig
+from transformers import HfArgumentParser
+
+parser = HfArgumentParser((ModelConfig, TrainConfig))
+
+# Load from YAML
+model_cfg, train_cfg = parser.parse_json_file(json_file="configs/default_config.yaml")
+
+# Override specific parameters
+train_cfg.num_train_epochs = 5
+train_cfg.learning_rate = 5e-5
+
+# Delegate to training engine
+from src.train import train_model
+# ... model loading logic ...
+```
+
+### CLI Command Layout
+The `unsloth-cli` provides a direct interface to the `src.cli:main` function.
+
+| Interface | Input Format | Primary Action |
+| :--- | :--- | :--- |
+| **Config Mode** | `unsloth-cli <file>.yaml` | Loads all params from file. |
+| **Flag Mode** | `unsloth-cli --key val` | Parses individual arguments. |
+| **Mixed Mode** | Not supported | CLI flags take precedence when no file is provided. |

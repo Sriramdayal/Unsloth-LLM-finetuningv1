@@ -118,18 +118,50 @@ python -m src.cli config.yaml
 | `--push_to_hub` | bool | `False` | Push model to Hub after training. |
 | `--hub_model_id` | str | `None` | Repository name on Hub. |
 
-## 4. Troubleshooting
+## 5. CLI API Reference
 
-**"AttributeError: 'NoneType' object has no attribute..."**
-- This usually means `Unsloth` failed to load because no GPU was detected.
-- **Fix**: Use `--use_mock True` if checking logic on CPU, or run on a GPU machine.
+The CLI uses a dual-input schema: it can ingest parameters via raw command-line flags or structured configuration files.
 
-**"Unsloth should be imported before [transformers]"**
-- This warning is expected if running on CPU/Mock mode where Unsloth fails to initialize fully.
-- It can be ignored in Mock Mode.
-- On a GPU machine, ensure you are not importing `transformers` manually before `src.cli`.
+### Configuration Schema (YAML/JSON)
+When using a config file, the schema is divided into `ModelConfig` and `TrainConfig` attributes (merged at the root).
 
-**"CUDA out of memory"**
-- Reduce `--batch_size`.
-- Reduce `--max_seq_length`.
-- INCREASE `--gradient_accumulation_steps` to maintain effective batch size.
+**Full Registry:**
+```yaml
+# Model Parameters
+model_name_or_path: str   # Example: "unsloth/llama-3-8b-bnb-4bit"
+load_in_4bit: bool        # Default: true
+max_seq_length: int       # Default: 2048
+lora_r: int               # Default: 16
+lora_alpha: int           # Default: 16
+target_modules: list      # Example: ["q_proj", "v_proj"]
+use_mock: bool            # For CPU/CI testing
+
+# Training Parameters
+dataset_name: str         # Example: "yahma/alpaca-cleaned"
+dataset_text_column: str  # Default: "text"
+output_dir: str           # Default: "outputs"
+batch_size: int           # Default: 2
+learning_rate: float      # Default: 2e-4
+num_train_epochs: float   # Default: 1.0
+push_to_hub: bool         # Default: false
+```
+
+### Programmatic CLI Invocation
+You can interface with the CLI logic using Python's `subprocess` or by calling the entry point:
+
+```python
+import subprocess
+
+# Invoke via entry point
+subprocess.run([
+    "unsloth-cli", 
+    "--model_name_or_path", "unsloth/mistral-7b-bnb-4bit",
+    "--dataset_name", "imdb",
+    "--max_steps", "10"
+])
+```
+
+### Exit Codes
+- `0`: Success.
+- `1`: Fatal Error (OOM, Invalid Config, Dataset Missing).
+- `127`: Command not found / Environment issue.
