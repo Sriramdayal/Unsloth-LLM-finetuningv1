@@ -7,33 +7,37 @@ The CLI is located at `src/cli.py` and is designed for automated, reproducible t
 ## 1. Quick Start
 
 ### Installation
-This project uses `uv` for dependency management, but standard `pip` is also supported.
+This project requires **Python 3.10+** and targets **CUDA 12.1+** for GPU acceleration.
 
-**Using `pip`:**
+**Standard Installation:**
 ```bash
-pip install -e .
+pip install .
 ```
 
-**Using `uv` (Recommended):**
+**GPU Installation (Recommended for Local):**
 ```bash
-uv sync
+pip install .[gpu] --extra-index-url https://download.pytorch.org/whl/cu121
 ```
 
 ### Basic Usage
-You can run the CLI as a python module or via specific scripts depending on your environment.
+Since the refactor, the preferred way to run the CLI is via the automatically installed `unsloth-cli` entry point.
 
 **Standard Run (GPU Required):**
 ```bash
-# Via python module
-python -m src.cli \
+unsloth-cli train \
     --model_name_or_path "unsloth/llama-3-8b-bnb-4bit" \
     --dataset_name "yahma/alpaca-cleaned" \
     --num_train_epochs 1
 ```
 
+**Via Python Script (Alternative):**
+```bash
+python src/cli.py train --config configs/default_config.yaml
+```
+
 **Using `uv`:**
 ```bash
-uv run python -m src.cli ...
+uv run unsloth-cli train ...
 ```
 
 ### Dry Run & Mock Mode (CPU/CI Friendly)

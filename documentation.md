@@ -4,7 +4,7 @@ This guide provides detailed instructions on how to use `unsloth-finetuning` as 
 
 ## 1. Installation
 
-### From PyPI
+### From PyPI (Development Version)
 ```bash
 pip install git+https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
 ```
@@ -13,7 +13,12 @@ pip install git+https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
 ```bash
 git clone https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
 cd Unsloth-LLM-finetuningv1
-pip install -e .
+pip install .
+```
+
+### For GPU Support (Local CUDA)
+```bash
+pip install .[gpu] --extra-index-url https://download.pytorch.org/whl/cu121
 ```
 
 ## 2. Dataset Preparation
@@ -22,6 +27,8 @@ The package includes a robust `DataProcessor` that handles loading, formatting, 
 
 ### Loading & Formatting
 ```python
+import unsloth
+from unsloth import FastLanguageModel
 from src.config import ModelConfig, TrainConfig
 from src.data import DataProcessor
 from transformers import AutoTokenizer
@@ -62,6 +69,7 @@ The processor automatically detects columns.
 We use `unsloth.FastLanguageModel` for optimized loading.
 
 ```python
+import unsloth
 from unsloth import FastLanguageModel
 
 max_seq_len = 2048
@@ -90,6 +98,8 @@ model = FastLanguageModel.get_peft_model(
 We recommend using HuggingFace TRL's `SFTTrainer`.
 
 ```python
+import unsloth
+from unsloth import FastLanguageModel
 from trl import SFTTrainer
 from transformers import TrainingArguments
 
@@ -118,6 +128,8 @@ trainer.train()
 For inference, use the `FastLanguageModel.for_inference` context.
 
 ```python
+import unsloth
+from unsloth import FastLanguageModel
 FastLanguageModel.for_inference(model)
 
 prompt = "Below is an instruction... ### Instruction:\nExplain quantum computing.\n\n### Response:\n"
