@@ -37,18 +37,16 @@
 
 ## 📌 Overview
 
-This repo provides a **end-to-end-Pipeline** for finetuning HuggingFace models using:
+This repo provides a **Professional Enterprise Pipeline** for finetuning HuggingFace models using:
 
-* ⚡ **Unsloth-optimized kernels** (2× faster)
-* 🎯 **LoRA adapters** (low-cost parameter-efficient tuning)
-* 🧠 **4-bit inference/training** for consumer GPUs
-* 🏋️ **TRL’s SFTTrainer**
-* 🔄 **Optional LoRA merge/export for deployment**
+* ⚡ **Unsloth-optimized kernels** (2× faster, 70% less VRAM)
+* 🏗️ **Modular Core Architecture**: Unified `ModelRunner` and `ModelFactory` for training and inference.
+* 🛡️ **Hardware Resilience**: Internal `HardwareManager` for pre-flight memory and compatibility checks.
+* 🎯 **Dynamic Dataset Support**: Automatic format detection (Alpaca, ChatML, ShareGPT).
+* 🔄 **Flexible Deployment**: CLI, No-Code GUI, and a clean Python API.
 
-Works for **instruction tuning, chat models, summarization, domain adaptation**, and more.
-
-> [!NEW]
-> **Dynamic Dataset Support**: The system now automatically detects your dataset columns or falls back to sensible defaults. No strictly formatted "instruction/output" columns required!
+> [!IMPORTANT]
+> **Version 0.2.0 Refactor**: The project has been restructured for industrial-grade maintainability and modularity. Standardized imports and consolidated factories are now mandatory.
 
 ---
 
@@ -60,24 +58,45 @@ uv run or uv  before_all_commands
 ```
 
 
-### 1. Installation
+### 1. Requirements
 
+- **Python 3.10+** (Required for modern Torch/Transformers compatibility)
+- **CUDA 12.1+** (For GPU-accelerated training)
+
+### 2. Installation
+
+**Standard Installation:**
 ```bash
-pip install -r requirements.txt
+pip install .
+```
+
+**GPU-Accelerated Installation (Local):**
+Installs with full local CUDA stack to avoid system-wide dependency issues.
+```bash
+pip install .[gpu] --extra-index-url https://download.pytorch.org/whl/cu121
+```
+or 
+```bash
+pip install -r requirements-gpu.txt
 ```
 
 ### 2. Mode 1: Headless CLI (Automation)
 
 The CLI is designed for automated training pipelines and reproducible runs.
 
-**Basic Usage:**
+**Basic Usage (via entry point):**
+```bash
+unsloth-cli --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --dataset_name "imdb"
+```
+
+**Basic Usage (via script):**
 ```bash
 python src/cli.py --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --dataset_name "imdb"
 ```
 
 **Using a Config File:**
 ```bash
-python src/cli.py configs/example.yaml
+unsloth-cli configs/example.yaml
 ```
 
 📖 **[Read the Full CLI Manual](cli-manual.md)** for detailed reference, including dry runs and all argument options.

@@ -7,33 +7,37 @@ The CLI is located at `src/cli.py` and is designed for automated, reproducible t
 ## 1. Quick Start
 
 ### Installation
-This project uses `uv` for dependency management, but standard `pip` is also supported.
+This project requires **Python 3.10+** and targets **CUDA 12.1+** for GPU acceleration.
 
-**Using `pip`:**
+**Standard Installation:**
 ```bash
-pip install -e .
+pip install .
 ```
 
-**Using `uv` (Recommended):**
+**GPU Installation (Recommended for Local):**
 ```bash
-uv sync
+pip install .[gpu] --extra-index-url https://download.pytorch.org/whl/cu121
 ```
 
 ### Basic Usage
-You can run the CLI as a python module or via specific scripts depending on your environment.
+Since the refactor, the preferred way to run the CLI is via the automatically installed `unsloth-cli` entry point.
 
 **Standard Run (GPU Required):**
 ```bash
-# Via python module
-python -m src.cli \
+unsloth-cli train \
     --model_name_or_path "unsloth/llama-3-8b-bnb-4bit" \
     --dataset_name "yahma/alpaca-cleaned" \
     --num_train_epochs 1
 ```
 
+**Via Python Script (Alternative):**
+```bash
+python src/cli.py train --config configs/default_config.yaml
+```
+
 **Using `uv`:**
 ```bash
-uv run python -m src.cli ...
+uv run unsloth-cli train ...
 ```
 
 ### Dry Run & Mock Mode (CPU/CI Friendly)
@@ -114,18 +118,50 @@ python -m src.cli config.yaml
 | `--push_to_hub` | bool | `False` | Push model to Hub after training. |
 | `--hub_model_id` | str | `None` | Repository name on Hub. |
 
-## 4. Troubleshooting
+## 5. CLI API Reference
 
-**"AttributeError: 'NoneType' object has no attribute..."**
-- This usually means `Unsloth` failed to load because no GPU was detected.
-- **Fix**: Use `--use_mock True` if checking logic on CPU, or run on a GPU machine.
+The CLI uses a dual-input schema: it can ingest parameters via raw command-line flags or structured configuration files.
 
-**"Unsloth should be imported before [transformers]"**
-- This warning is expected if running on CPU/Mock mode where Unsloth fails to initialize fully.
-- It can be ignored in Mock Mode.
-- On a GPU machine, ensure you are not importing `transformers` manually before `src.cli`.
+### Configuration Schema (YAML/JSON)
+When using a config file, the schema is divided into `ModelConfig` and `TrainConfig` attributes (merged at the root).
 
-**"CUDA out of memory"**
-- Reduce `--batch_size`.
-- Reduce `--max_seq_length`.
-- INCREASE `--gradient_accumulation_steps` to maintain effective batch size.
+**Full Registry:**
+```yaml
+# Model Parameters
+model_name_or_path: str   # Example: "unsloth/llama-3-8b-bnb-4bit"
+load_in_4bit: bool        # Default: true
+max_seq_length: int       # Default: 2048
+lora_r: int               # Default: 16
+lora_alpha: int           # Default: 16
+target_modules: list      # Example: ["q_proj", "v_proj"]
+use_mock: bool            # For CPU/CI testing
+
+# Training Parameters
+dataset_name: str         # Example: "yahma/alpaca-cleaned"
+dataset_text_column: str  # Default: "text"
+output_dir: str           # Default: "outputs"
+batch_size: int           # Default: 2
+learning_rate: float      # Default: 2e-4
+num_train_epochs: float   # Default: 1.0
+push_to_hub: bool         # Default: false
+```
+
+### Programmatic CLI Invocation
+You can interface with the CLI logic using Python's `subprocess` or by calling the entry point:
+
+```python
+import subprocess
+
+# Invoke via entry point
+subprocess.run([
+    "unsloth-cli", 
+    "--model_name_or_path", "unsloth/mistral-7b-bnb-4bit",
+    "--dataset_name", "imdb",
+    "--max_steps", "10"
+])
+```
+
+### Exit Codes
+- `0`: Success.
+- `1`: Fatal Error (OOM, Invalid Config, Dataset Missing).
+- `127`: Command not found / Environment issue.

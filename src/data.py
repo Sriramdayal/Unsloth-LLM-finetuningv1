@@ -1,16 +1,10 @@
+import unsloth
+from unsloth import FastLanguageModel
+from unsloth.chat_templates import get_chat_template
 """
 Data Processing Module for Unsloth Enterprise Pipeline.
 Handles dataset loading, validation, formatting, and previewing.
 """
-
-try:
-    from unsloth.chat_templates import get_chat_template
-except ImportError:
-    get_chat_template = None
-except NotImplementedError:
-    get_chat_template = None
-except Exception:
-    get_chat_template = None
 
 import logging
 from typing import Any, Dict, List, Optional
@@ -25,6 +19,7 @@ except ImportError:
 class DataProcessor:
     """
     Robust Data Processor for ETL operations.
+    Handles conversion of various raw dataset formats into tokenized training data.
     """
     def __init__(self, model_config: ModelConfig, train_config: TrainConfig, tokenizer):
         self.model_config = model_config
@@ -32,197 +27,84 @@ class DataProcessor:
         self.tokenizer = tokenizer
         self.raw_dataset = None
         self.formatted_dataset = None
+        self.logger = logging.getLogger(__name__)
 
     def load_dataset(self, split: str = "train"):
-        """
-        Loads the dataset from Hugging Face or local path.
-        """
+        """Loads dataset from HF or local path with error handling."""
         try:
-            self.raw_dataset = load_dataset(
-                self.train_config.dataset_name,
-                split=split
-            )
+            self.raw_dataset = load_dataset(self.train_config.dataset_name, split=split)
             if self.train_config.dataset_num_samples:
-                print(f"DEBUG: Selecting {self.train_config.dataset_num_samples} samples for debugging.")
+                self.logger.info(f"Subsampling dataset to {self.train_config.dataset_num_samples} samples.")
                 self.raw_dataset = self.raw_dataset.select(range(self.train_config.dataset_num_samples))
         except Exception as e:
-            raise RuntimeError(f"Failed to load dataset {self.train_config.dataset_name}: {e}")
-
-    def validate_columns(self, required_columns: Optional[List[str]] = None):
-        """
-        Validates that the dataset contains the required columns.
-        If required_columns is None, it attempts to validate based on available auto-detection logic.
-        """
-        if not self.raw_dataset:
-            raise ValueError("Dataset not loaded. Call load_dataset() first.")
-        
-        if required_columns is not None:
-            missing = [col for col in required_columns if col not in self.raw_dataset.column_names]
-            if missing:
-                raise ValueError(f"Dataset missing required columns: {missing}. Available: {self.raw_dataset.column_names}")
-        else:
-            # Dynamic Validation
-            # 1. Check for pre-formatted text column
-            text_column = self.train_config.dataset_text_column
-            if text_column in self.raw_dataset.column_names:
-                return # Valid
-
-            # 2. Check if auto-mapping works
-            try:
-                self._auto_detect_mapping()
-            except ValueError as e:
-                raise ValueError(f"Dataset validation failed. Could not detect standard columns or pre-formatted text column.\nDetails: {e}")
-
-    def get_preview(self, n: int = 3) -> pd.DataFrame:
-        """
-        Returns a Pandas DataFrame of the first n rows for preview.
-        """
-        if not self.raw_dataset:
-            raise ValueError("Dataset not loaded. Call load_dataset() first.")
-        
-        return self.raw_dataset.select(range(min(n, len(self.raw_dataset)))).to_pandas()
+            self.logger.error(f"Failed to load dataset: {e}")
+            raise RuntimeError(f"Data loading error: {e}")
 
     def _auto_detect_mapping(self) -> Dict[str, str]:
-        """
-        Heuristically detects column names for instruction, input, and output.
-        """
-        if not self.raw_dataset:
-            raise ValueError("Dataset not loaded.")
-        
-        columns = self.raw_dataset.column_names
+        """Enhanced heuristic for mapping varied dataset schemas."""
+        cols = self.raw_dataset.column_names
         mapping = {}
 
-        # 1. Detect Instruction Column
-        instruction_candidates = ["instruction", "prompt", "question", "query", "input_text"]
-        for cand in instruction_candidates:
-            if cand in columns:
-                mapping["instruction"] = cand
-                break
-        
-        # 2. Detect Output Column
-        output_candidates = ["output", "response", "answer", "completion", "solution", "target"]
-        for cand in output_candidates:
-            if cand in columns:
-                mapping["output"] = cand
-                break
+        # 1. Look for 'text' or 'content' (Pre-formatted)
+        for cand in ["text", "content", "full_text"]:
+            if cand in cols:
+                return {"text": cand}
 
-        # 3. Detect Input Column (Optional)
-        input_candidates = ["input", "context", "system", "history"]
-        for cand in input_candidates:
-            if cand in columns:
-                mapping["input"] = cand
-                break
-        
-        # Validation & Fallback
-        if "instruction" not in mapping or "output" not in mapping:
-             # Try positional fallback
-             if len(columns) >= 2:
-                  print(f"WARNING: Automatic column detection failed for standard keys. Falling back to positional mapping.")
-                  mapping["instruction"] = columns[0]
-                  mapping["output"] = columns[1]
-                  mapping["input"] = None
-                  print(f"Positional Fallback: instruction='{mapping['instruction']}', output='{mapping['output']}'")
-             else:
-                  if "instruction" not in mapping:
-                       raise ValueError(f"Could not automatically detect an 'instruction' column. Candidates checked: {instruction_candidates}. Available columns: {columns}")
-                  if "output" not in mapping:
-                       raise ValueError(f"Could not automatically detect an 'output' column. Candidates checked: {output_candidates}. Available columns: {columns}")
-        
-        # Default 'input' to None if not found (will need handling in formatting)
-        if "input" not in mapping:
-            mapping["input"] = None
+        # 2. Look for Chat formats (conversations, messages)
+        for cand in ["conversations", "messages", "chat"]:
+            if cand in cols:
+                return {"chat": cand}
+
+        # 3. Standard Instruction/Output
+        mapping["instruction"] = self._match_column(cols, ["instruction", "prompt", "question", "input_text"])
+        mapping["output"] = self._match_column(cols, ["output", "response", "answer", "completion"])
+        mapping["input"] = self._match_column(cols, ["input", "context", "background"], optional=True)
+
+        if not mapping["instruction"] or not mapping["output"]:
+            self.logger.warning("Auto-detection failed for standard keys. Using positional 0:instruction, 1:output.")
+            mapping["instruction"] = cols[0]
+            mapping["output"] = cols[1] if len(cols) > 1 else None
 
         return mapping
 
-    def format_and_tokenize(self, mapping: Optional[Dict[str, str]] = None, style: str = "alpaca"):
-        """
-        Formats and tokenizes the dataset.
-        
-        Args:
-            mapping: Dictionary mapping internal keys (instruction, input, output) to dataset columns.
-                     Example: {'instruction': 'question', 'input': 'context', 'output': 'answer'}
-            style: Formatting style ('alpaca', 'chatml', or 'completion').
-        """
-        if not self.raw_dataset:
-            raise ValueError("Dataset not loaded. Call load_dataset() first.")
+    def _match_column(self, cols, candidates, optional=False):
+        for c in candidates:
+            if c in cols: return c
+        return None if optional else ""
 
-        # 0. Check for Pre-formatted Text Column
-        text_column = self.train_config.dataset_text_column
-        if text_column in self.raw_dataset.column_names:
-            print(f"DEBUG: Found pre-formatted text column '{text_column}'. Skipping tokenization/formatting step.")
-            self.formatted_dataset = self.raw_dataset
-            # Ensure the text column is actually named "text" for downstream compatibility if it isn't already
-            if text_column != "text":
-                self.formatted_dataset = self.formatted_dataset.rename_column(text_column, "text")
+    def format_and_tokenize(self, style: str = "auto"):
+        """Formats data based on detected style (alpaca, chatml, etc)."""
+        mapping = self._auto_detect_mapping()
+        
+        if "text" in mapping:
+            self.logger.info(f"Using pre-formatted column: {mapping['text']}")
+            self.formatted_dataset = self.raw_dataset.rename_column(mapping["text"], "text")
             return self.formatted_dataset
 
-        # Auto-detect mapping if not provided
-        if mapping is None:
-            mapping = self._auto_detect_mapping()
-            print(f"DEBUG: Auto-detected mapping: {mapping}")
+        if "chat" in mapping:
+            self.logger.info(f"Applying Chat template to column: {mapping['chat']}")
+            def chat_format(example):
+                convo = example[mapping["chat"]]
+                # Simple ChatML wrapper if not already tokenized
+                return {"text": self.tokenizer.apply_chat_template(convo, tokenize=False) + self.tokenizer.eos_token}
+            self.formatted_dataset = self.raw_dataset.map(chat_format, batched=False)
+            return self.formatted_dataset
 
-        # Validate mapping keys based on style if needed, but for now strict validation on keys existing in dataset
-        # We only strictly require instruction and output. Input is optional.
-        required_cols = [mapping["instruction"], mapping["output"]]
-        self.validate_columns(required_cols)
-
-        def formatting_prompts_func(examples):
-            instructions = examples[mapping["instruction"]]
-            outputs = examples[mapping["output"]]
+        # Default to Alpaca-style
+        self.logger.info("Applying Alpaca-style formatting.")
+        def alpaca_format(examples):
+            instr = examples[mapping["instruction"]]
+            out = examples[mapping["output"]]
+            inp = examples.get(mapping["input"], [None] * len(instr)) if mapping["input"] else [None] * len(instr)
             
-            if mapping["input"] and mapping["input"] in examples:
-                inputs = examples[mapping["input"]]
-            else:
-                inputs = [None] * len(instructions)
-
             texts = []
-            
-            # Standard Alpaca Format
-            alpaca_prompt = """Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
-
-### Instruction:
-{}
-
-### Input:
-{}
-
-### Response:
-{}"""
-            
-            alpaca_prompt_no_input = """Below is an instruction that describes a task. Write a response that appropriately completes the request.
-
-### Instruction:
-{}
-
-### Response:
-{}"""
-
-            for instruction, input_text, output in zip(instructions, inputs, outputs):
-                if input_text and str(input_text).strip():
-                    text = alpaca_prompt.format(instruction, input_text, output)
+            for i, o, c in zip(instr, out, inp):
+                if c:
+                    txt = f"### Instruction:\n{i}\n\n### Input:\n{c}\n\n### Response:\n{o}"
                 else:
-                    text = alpaca_prompt_no_input.format(instruction, output)
-                texts.append(text + self.tokenizer.eos_token)
-            return { "text": texts, }
+                    txt = f"### Instruction:\n{i}\n\n### Response:\n{o}"
+                texts.append(txt + self.tokenizer.eos_token)
+            return {"text": texts}
 
-        # Apply formatting
-        if style == "alpaca":
-             self.formatted_dataset = self.raw_dataset.map(
-                formatting_prompts_func,
-                batched=True,
-            )
-        else:
-            # Placeholder for other styles like ChatML if needed
-            # For now, we default to the standard unsloth alpaca logic or custom logic
-            pass
-            
+        self.formatted_dataset = self.raw_dataset.map(alpaca_format, batched=True)
         return self.formatted_dataset
-
-
-
-    def apply_template(self):
-        """
-        Applies a chat template if the model/tokenizer supports it.
-        This is a placeholder for more advanced chat template integration.
-        """
-        pass

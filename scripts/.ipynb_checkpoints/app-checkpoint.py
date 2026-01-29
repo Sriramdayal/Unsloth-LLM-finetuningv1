@@ -61,6 +61,12 @@ def preview_data(dataset_name, num_samples):
         model_cfg = ModelConfig(model_name_or_path="dummy") 
         train_cfg = TrainConfig(dataset_name=dataset_name, dataset_num_samples=int(num_samples) if num_samples else None)
         
+        # We need a dummy tokenizer or load a real one. 
+        # For previewing "raw" data, we don't strictly need one if we just look at columns, 
+        # but DataProcessor expects one in init. 
+        # Let's use a lightweight check or just suppress if not needed for get_preview.
+        # Actually, let's just proceed.
+        
         processor = DataProcessor(model_cfg, train_cfg, tokenizer=None)
         processor.load_dataset()
         df = processor.get_preview(n=5)
@@ -76,17 +82,23 @@ def load_model_and_tokenize(model_name, load_4bit, r, alpha, dataset_name, use_m
         # Load Model
         if state.model is None and not use_mock:
             yield "Loading Model (this may take time)...", pd.DataFrame()
-            
-            cfg = ModelConfig(
-                model_name_or_path=model_name,
-                lora_r=int(r),
-                lora_alpha=int(alpha),
-                load_in_4bit=load_4bit
+            model, tokenizer = FastLanguageModel.from_pretrained(
+                model_name = model_name,
+                max_seq_length = 2048,
+                dto = None,
+                load_in_4bit = load_4bit,
             )
             
-            model, tokenizer = ModelFactory.create_model_and_tokenizer(cfg)
-            model = ModelFactory.apply_lora(model, cfg)
-            
+            model = FastLanguageModel.get_peft_model(
+                model,
+                r = int(r),
+                target_modules = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+                lora_alpha = int(alpha),
+                lora_dropout = 0,
+                bias = "none",
+                use_gradient_checkpointing = "unsloth",
+                random_state = 3407,
+            )
             state.model = model
             state.tokenizer = tokenizer
             status_msg += f"Model {model_name} loaded.\n"

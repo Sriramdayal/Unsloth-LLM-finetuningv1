@@ -1,113 +1,78 @@
-
-"""
-Headless Automation CLI for Unsloth Enterprise Pipeline.
-Supports generic config loading (YAML/JSON) and dry runs.
-"""
-
+import unsloth
+from unsloth import FastLanguageModel
 import os
 import sys
 import logging
-from dataclasses import dataclass
-from typing import Optional
-
-# Unsloth MUST be imported before transformers/torch
-try:
-    from unsloth import FastLanguageModel
-except ImportError:
-    FastLanguageModel = None
-except NotImplementedError:
-    FastLanguageModel = None
-except Exception:
-    FastLanguageModel = None
-
-import torch
+import argparse
 from transformers import HfArgumentParser
 
-# Removed sys.path hack as we are now a package
 from .config import ModelConfig, TrainConfig
 from .data import DataProcessor
 from .train import train_model
+from .core.factory import ModelFactory
+from .utils.env import HardwareManager
 
-# Configure Logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s"
-)
+# Setup Logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-
-def main():
+def run_training(args):
+    """Subcommand for training."""
     parser = HfArgumentParser((ModelConfig, TrainConfig))
     
-    # Allow loading from a config file if provided as a single argument
-    if len(sys.argv) == 2 and sys.argv[1].endswith((".json", ".yaml", ".yml")):
-        model_config, train_config = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
+    # Load from config file or CLI
+    if args.config:
+        model_cfg, train_cfg = parser.parse_json_file(json_file=os.path.abspath(args.config))
     else:
-        model_config, train_config = parser.parse_args_into_dataclasses()
+        model_cfg, train_cfg = parser.parse_args_into_dataclasses(args.unknown)
 
-    logger.info("--- Configuration ---")
-    logger.info(f"Model: {model_config.model_name_or_path}")
-    logger.info(f"Dataset: {train_config.dataset_name}")
-    logger.info(f"Dry Run: {train_config.dry_run}")
-    logger.info(f"Mock Mode: {model_config.use_mock}")
-    logger.info("---------------------")
+    # 1. Hardware Report
+    HardwareManager.log_system_report()
 
-    # 1. Load Model & Tokenizer
-    if model_config.use_mock:
-        logger.info("[MOCK] Loading dummy tokenizer...")
-        from transformers import AutoTokenizer
-        # Use a small tokenizer (gpt2) for testing data processing without downloading 7B params
-        tokenizer = AutoTokenizer.from_pretrained("gpt2")
-        tokenizer.pad_token = tokenizer.eos_token
-        model = None # No model needed for mock training loop logic in train.py
+    # 2. Logic: Mock vs Real
+    if model_cfg.use_mock:
+        logger.info("[MOCK] Running in simulation mode.")
+        tokenizer = None # Processor will load dummy if needed
+        model = None
     else:
-        if FastLanguageModel is None:
-            raise RuntimeError(
-                "FastLanguageModel is not available. This is likely because Unsloth is not installed "
-                "correctly or no GPU is detected. Please install Unsloth with GPU support or use "
-                "--use_mock True to run in mock mode."
-            )
-        logger.info("Loading Model...")
-        model, tokenizer = FastLanguageModel.from_pretrained(
-            model_name = model_config.model_name_or_path,
-            max_seq_length = model_config.max_seq_length,
-            dtype = None,
-            load_in_4bit = model_config.load_in_4bit,
-        )
+        model, tokenizer = ModelFactory.create_model_and_tokenizer(model_cfg)
+        model = ModelFactory.apply_lora(model, model_cfg)
 
-        # 2. Add LoRA Adapters
-        print("Adding LoRA Adapters...")
-        model = FastLanguageModel.get_peft_model(
-            model,
-            r = model_config.lora_r,
-            target_modules = model_config.target_modules,
-            lora_alpha = model_config.lora_alpha,
-            lora_dropout = model_config.lora_dropout,
-            bias = "none",
-            use_gradient_checkpointing = "unsloth", 
-            random_state = model_config.random_state,
-            use_rslora = False,
-            loftq_config = None,
-        )
-
-    # 3. Data Processing
-    print("Processing Data...")
-    processor = DataProcessor(model_config, train_config, tokenizer)
+    # 3. Data
+    processor = DataProcessor(model_cfg, train_cfg, tokenizer)
     processor.load_dataset()
-    processor.validate_columns()
-    
-    dataset = processor.format_and_tokenize(style="alpaca")
+    dataset = processor.format_and_tokenize()
 
-    if train_config.dry_run:
-        logger.info("Dry run completed successfully. Data and Model loaded. Exiting.")
+    if train_cfg.dry_run:
+        logger.info("Dry run complete. Exiting.")
         return
 
-    # 4. Training
-    train_model(model, tokenizer, dataset, train_config, model_config)
-    print("Done!")
+    # 4. Train
+    train_model(model, tokenizer, dataset, train_cfg, model_cfg)
+    logger.info("Process finished successfully.")
+
+def main():
+    parser = argparse.ArgumentParser(description="Unsloth LLM Orchestrator")
+    subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
+
+    # Train Command
+    train_parser = subparsers.add_parser("train", help="Start fine-tuning")
+    train_parser.add_argument("--config", type=str, help="Path to YAML/JSON config file")
+    
+    # Infer Command (Placeholder for future expansion)
+    infer_parser = subparsers.add_parser("infer", help="Run inference (experimental)")
+    infer_parser.add_argument("--model", type=str, required=True)
+    infer_parser.add_argument("--prompt", type=str, required=True)
+
+    args, unknown = parser.parse_known_args()
+    args.unknown = unknown
+
+    if args.command == "train":
+        run_training(args)
+    elif args.command == "infer":
+        logger.info("Inference subcommand coming soon.")
+    else:
+        parser.print_help()
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception as e:
-        print(f"\n[FATAL ERROR]: {e}")
-        sys.exit(1)
+    main()
