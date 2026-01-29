@@ -37,18 +37,16 @@
 
 ## 📌 Overview
 
-This repo provides a **end-to-end-Pipeline** for finetuning HuggingFace models using:
+This repo provides a **Professional Enterprise Pipeline** for finetuning HuggingFace models using:
 
-* ⚡ **Unsloth-optimized kernels** (2× faster)
-* 🎯 **LoRA adapters** (low-cost parameter-efficient tuning)
-* 🧠 **4-bit inference/training** for consumer GPUs
-* 🏋️ **TRL’s SFTTrainer**
-* 🔄 **Optional LoRA merge/export for deployment**
+* ⚡ **Unsloth-optimized kernels** (2× faster, 70% less VRAM)
+* 🏗️ **Modular Core Architecture**: Unified `ModelRunner` and `ModelFactory` for training and inference.
+* 🛡️ **Hardware Resilience**: Internal `HardwareManager` for pre-flight memory and compatibility checks.
+* 🎯 **Dynamic Dataset Support**: Automatic format detection (Alpaca, ChatML, ShareGPT).
+* 🔄 **Flexible Deployment**: CLI, No-Code GUI, and a clean Python API.
 
-Works for **instruction tuning, chat models, summarization, domain adaptation**, and more.
-
-> [!NEW]
-> **Dynamic Dataset Support**: The system now automatically detects your dataset columns or falls back to sensible defaults. No strictly formatted "instruction/output" columns required!
+> [!IMPORTANT]
+> **Version 0.2.0 Refactor**: The project has been restructured for industrial-grade maintainability and modularity. Standardized imports and consolidated factories are now mandatory.
 
 ---
 
