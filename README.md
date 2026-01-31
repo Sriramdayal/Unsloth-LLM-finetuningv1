@@ -46,7 +46,7 @@ This repo provides a **Professional Enterprise Pipeline** for finetuning Hugging
 * 🔄 **Flexible Deployment**: CLI, No-Code GUI, and a clean Python API.
 
 > [!IMPORTANT]
-> **Version 0.2.0 Refactor**: The project has been restructured for industrial-grade maintainability and modularity. Standardized imports and consolidated factories are now mandatory.
+> **Version 0.2.0 Refactor**: The project has been restructured maintainability
 
 ---
 
