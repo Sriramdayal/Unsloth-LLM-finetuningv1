@@ -41,10 +41,6 @@ This repo provides a **Professional Enterprise Pipeline** for finetuning Hugging
 
 * ⚡ **Unsloth-optimized kernels** (2× faster, 70% less VRAM)
 * 🏗️ **Modular Core Architecture**: Unified `ModelRunner` and `ModelFactory` for training and inference.
-* 🛡️ **Hardware Resilience**: Internal `HardwareManager` for pre-flight memory and compatibility checks.
-* 🎯 **Dynamic Dataset Support**: Automatic format detection (Alpaca, ChatML, ShareGPT).
-* 🔄 **Flexible Deployment**: CLI, No-Code GUI, and a clean Python API.
-
 
 
 ## ☁️ Run on Google Colab
