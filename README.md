@@ -46,91 +46,13 @@ This repo provides a **Professional Enterprise Pipeline** for finetuning Hugging
 * 🔄 **Flexible Deployment**: CLI, No-Code GUI, and a clean Python API.
 
 
----
-
-## 🚀 Quick Start: Usage Modes
-
-This repository supports two primary modes of operation.(create a virtualenv: if using uv) 
-```bash
-uv run or uv  before_all_commands
-```
-
-
-### 1. Requirements
-
-- **Python 3.10+** (Required for modern Torch/Transformers compatibility)
-- **CUDA 12.1+** (For GPU-accelerated training)
-
-### 2. Installation
-
-**Standard Installation:**
-```bash
-pip install .
-```
-
-**GPU-Accelerated Installation (Local):**
-Installs with full local CUDA stack to avoid system-wide dependency issues.
-```bash
-pip install .[gpu] --extra-index-url https://download.pytorch.org/whl/cu121
-```
-or 
-```bash
-pip install -r requirements-gpu.txt
-```
-
-### 2. Mode 1: Headless CLI (Automation)
-
-The CLI is designed for automated training pipelines and reproducible runs.
-
-**Basic Usage (via entry point):**
-```bash
-unsloth-cli --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --dataset_name "imdb"
-```
-
-**Basic Usage (via script):**
-```bash
-python src/cli.py --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --dataset_name "imdb"
-```
-
-**Using a Config File:**
-```bash
-unsloth-cli configs/example.yaml
-```
-
-📖 **[Read the Full CLI Manual](cli-manual.md)** for detailed reference, including dry runs and all argument options.
-
-### 3. Mode 2: No-Code Studio (Interactive)-[Beta]
-
-Launch the Gradio-based web interface for an interactive fine-tuning experience.
-
-```bash
-python scripts/app.py
-```
-*Open your browser at `http://localhost:7860`*
-
----
 
 ## ☁️ Run on Google Colab
 
 You can easily run this project on Google Colab by cloning the repository.
 
 1.  **Open a new Colab Notebook.**
-2.  **Run the following in a code cell to clone and install:**
-
-    ```python
-    !git clone https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
-    %cd Unsloth-LLM-finetuningv1
-    !pip install -r requirements.txt
-    ```
-
-3.  **Run Training (CLI Mode):**
-
-    ```python
-    !python src/cli.py --model_name_or_path "unsloth/mistral-7b-bnb-4bit" --dataset_name "imdb"
-    ```
-
----
-
+2.  **Run the following in a code cell:**
 ## 📘 Python API Guide
 
 For detailed instructions on using this repository as a Python library (including `DataProcessor`, configuration, and custom training loops), please refer to the dedicated documentation:

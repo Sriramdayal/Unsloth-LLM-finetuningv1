@@ -6,19 +6,7 @@ This guide provides detailed instructions on how to use `unsloth-finetuning` as 
 
 ### From PyPI (Development Version)
 ```bash
-pip install git+https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
-```
-
-### From Source
-```bash
-git clone https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
-cd Unsloth-LLM-finetuningv1
-pip install .
-```
-
-### For GPU Support (Local CUDA)
-```bash
-pip install .[gpu] --extra-index-url https://download.pytorch.org/whl/cu121
+pip install unsloth-finetuning
 ```
 
 ## 2. Dataset Preparation
