@@ -21,28 +21,33 @@ from src.config import ModelConfig, TrainConfig
 from src.data import DataProcessor
 from transformers import AutoTokenizer
 
-# 1. Setup Configs
+# 1. Setup Configs and Model
+model_name = "unsloth/mistral-7b-bnb-4bit"
+max_seq_len = 2048
+
+# Load model and tokenizer (Crucial step!)
+model, tokenizer = FastLanguageModel.from_pretrained(
+    model_name_or_path=model_name,
+    load_in_4bit=True,
+    max_seq_length=max_seq_len,
+    dtype=None, 
+)
+
 model_config = ModelConfig(
-    model_name_or_path="unsloth/mistral-7b-bnb-4bit",
-    load_in_4bit=True
+    model_name_or_path=model_name,
+    load_in_4bit=True,
+    max_seq_length=max_seq_len
 )
 train_config = TrainConfig(
     dataset_name="yahma/alpaca-cleaned",
     dataset_text_column="text"
 )
 
-# 2. Initialize Tokenizer (usually comes from model, using dummy here for logic demo)
-tokenizer = AutoTokenizer.from_pretrained("unsloth/mistral-7b-bnb-4bit")
-
-# 3. Process Data
+# 2. Process Data
 processor = DataProcessor(model_config, train_config, tokenizer)
 processor.load_dataset()
 
-# Optional: Inspect detected columns
-# processor.validate_columns() 
-
-# 4. Format & Tokenize
-# This applies the prompt template and tokenizes the result
+# 3. Format & Tokenize
 dataset = processor.format_and_tokenize(style="alpaca")
 ```
 
@@ -62,13 +67,8 @@ from unsloth import FastLanguageModel
 
 max_seq_len = 2048
 
-# 1. Load Base Model
-model, tokenizer = FastLanguageModel.from_pretrained(
-    "unsloth/mistral-7b-bnb-4bit",
-    load_in_4bit=True,
-    max_seq_length=max_seq_len,
-    dtype=None,
-)
+# 1. Load Base Model (If not loaded in previous step)
+# model, tokenizer = FastLanguageModel.from_pretrained(...)
 
 # 2. Add LoRA Adapters
 model = FastLanguageModel.get_peft_model(
@@ -76,8 +76,10 @@ model = FastLanguageModel.get_peft_model(
     r=16,
     lora_alpha=16,
     lora_dropout=0,
-    target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-    use_gradient_checkpointing="unsloth",
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    bias="none",
+    use_gradient_checkpointing="unsloth", 
+    random_state=3407,
 )
 ```
 
