@@ -21,33 +21,28 @@ from src.config import ModelConfig, TrainConfig
 from src.data import DataProcessor
 from transformers import AutoTokenizer
 
-# 1. Setup Configs and Model
-model_name = "unsloth/mistral-7b-bnb-4bit"
-max_seq_len = 2048
-
-# Load model and tokenizer (Crucial step!)
-model, tokenizer = FastLanguageModel.from_pretrained(
-    model_name_or_path=model_name,
-    load_in_4bit=True,
-    max_seq_length=max_seq_len,
-    dtype=None, 
-)
-
+# 1. Setup Configs
 model_config = ModelConfig(
-    model_name_or_path=model_name,
-    load_in_4bit=True,
-    max_seq_length=max_seq_len
+    model_name_or_path="unsloth/mistral-7b-bnb-4bit",
+    load_in_4bit=True
 )
 train_config = TrainConfig(
-    dataset_name="yahma/alpaca-cleaned",
+    dataset_name="bowen-upenn/PersonaMem-v2",
     dataset_text_column="text"
 )
 
-# 2. Process Data
-processor = DataProcessor(model_config, train_config, tokenizer)
-processor.load_dataset()
+# 2. Initialize Tokenizer (usually comes from model, using dummy here for logic demo)
+tokenizer = AutoTokenizer.from_pretrained("unsloth/mistral-7b-bnb-4bit")
 
-# 3. Format & Tokenize
+# 3. Process Data
+processor = DataProcessor(model_config, train_config, tokenizer)
+processor.load_dataset(split="train_text") # Corrected: Specify the 'train_text' split
+
+# Optional: Inspect detected columns
+# processor.validate_columns()
+
+# 4. Format & Tokenize
+# This applies the prompt template and tokenizes the result
 dataset = processor.format_and_tokenize(style="alpaca")
 ```
 
