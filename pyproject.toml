@@ -96,8 +96,9 @@ Changelog = "https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1/blob/main/C
 unsloth-cli = "src.cli:main"
 unsloth-gui = "scripts.app:main"
 
-[tool.setuptools]
-packages = ["src", "scripts"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "scripts*"]
 
 [tool.setuptools.package-data]
 src = ["*.yaml", "configs/*.yaml"]
