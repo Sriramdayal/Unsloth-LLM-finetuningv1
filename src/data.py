@@ -8,6 +8,7 @@ Handles dataset loading, validation, formatting, and previewing.
 
 import logging
 from typing import Any, Dict, List, Optional
+import ast
 
 import pandas as pd
 from datasets import load_dataset, Dataset
@@ -89,6 +90,11 @@ class DataProcessor:
             
             return self._apply_alpaca_format(mapping)
 
+        # 2. Movie Recommender Style
+        if style == "movie_recommender":
+            self.logger.info("Applying Movie Recommender style formatting.")
+            return self._apply_movie_recommender_format()
+
         if "text" in mapping:
             self.logger.info(f"Using pre-formatted column: {mapping['text']}")
             self.formatted_dataset = self.raw_dataset.rename_column(mapping["text"], "text")
@@ -135,4 +141,42 @@ class DataProcessor:
             return {"text": texts}
 
         self.formatted_dataset = self.raw_dataset.map(alpaca_format, batched=True)
+        return self.formatted_dataset
+
+    def _safe_parse(self, value):
+        try:
+            return [item["name"] for item in ast.literal_eval(value)]
+        except:
+            return []
+
+    def _apply_movie_recommender_format(self):
+        def format_row(row):
+            genres = ", ".join(self._safe_parse(row["genres"]))
+            keywords = ", ".join(self._safe_parse(row["keywords"]))
+
+            overview = row["overview"] if row["overview"] else "No overview available."
+            tagline = row["tagline"] if row.get("tagline") else ""
+
+            return {
+                "text": f"""### Instruction:
+Generate a persuasive movie recommendation for a user. Highlight why they should watch the movie using its genre, themes, storyline, and popularity.
+
+### Movie Metadata:
+Title: {row['title']}
+Tagline: {tagline}
+Overview: {overview}
+Genres: {genres}
+Keywords: {keywords}
+Vote Average: {row['vote_average']}
+Vote Count: {row['vote_count']}
+Popularity: {row['popularity']}
+Release Date: {row['release_date']}
+Runtime: {row['runtime']} minutes
+
+### Response:
+Here’s why you might enjoy this movie:
+""" + self.tokenizer.eos_token
+            }
+
+        self.formatted_dataset = self.raw_dataset.map(format_row)
         return self.formatted_dataset
