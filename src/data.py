@@ -76,26 +76,54 @@ class DataProcessor:
         """Formats data based on detected style (alpaca, chatml, etc)."""
         mapping = self._auto_detect_mapping()
         
+        # 1. Force Alpaca if requested
+        if style == "alpaca":
+            self.logger.info("Forcing Alpaca-style formatting.")
+            # Ensure we have the necessary columns mapped, even if auto-detect missed them
+            if "instruction" not in mapping:
+                 # Fallback to positional if explicit alpaca requested but no mapping found
+                 cols = self.raw_dataset.column_names
+                 mapping["instruction"] = cols[0]
+                 mapping["output"] = cols[1] if len(cols) > 1 else None
+                 mapping["input"] = cols[2] if len(cols) > 2 else None
+            
+            return self._apply_alpaca_format(mapping)
+
         if "text" in mapping:
             self.logger.info(f"Using pre-formatted column: {mapping['text']}")
             self.formatted_dataset = self.raw_dataset.rename_column(mapping["text"], "text")
             return self.formatted_dataset
 
-        if "chat" in mapping:
-            self.logger.info(f"Applying Chat template to column: {mapping['chat']}")
+        if "chat" in mapping or style == "chat":
+            self.logger.info(f"Applying Chat template to column: {mapping.get('chat', 'chat')}")
+            
+            # Ensure tokenizer has a chat template
+            if not getattr(self.tokenizer, "chat_template", None):
+                self.logger.warning("Tokenizer has no chat_template set. Applying default 'chatml' template.")
+                from unsloth.chat_templates import get_chat_template
+                self.tokenizer = get_chat_template(
+                    self.tokenizer,
+                    chat_template = "chatml",
+                    mapping = {"role" : "role", "content" : "content", "user" : "user", "assistant" : "assistant"},
+                    map_eos_token = True,
+                )
+
             def chat_format(example):
-                convo = example[mapping["chat"]]
+                convo = example[mapping.get("chat", "chat")]
                 # Simple ChatML wrapper if not already tokenized
                 return {"text": self.tokenizer.apply_chat_template(convo, tokenize=False) + self.tokenizer.eos_token}
             self.formatted_dataset = self.raw_dataset.map(chat_format, batched=False)
             return self.formatted_dataset
 
-        # Default to Alpaca-style
-        self.logger.info("Applying Alpaca-style formatting.")
+        # Default fallback
+        self.logger.info("Applying Alpaca-style formatting (Default).")
+        return self._apply_alpaca_format(mapping)
+
+    def _apply_alpaca_format(self, mapping):
         def alpaca_format(examples):
             instr = examples[mapping["instruction"]]
             out = examples[mapping["output"]]
-            inp = examples.get(mapping["input"], [None] * len(instr)) if mapping["input"] else [None] * len(instr)
+            inp = examples.get(mapping.get("input"), [None] * len(instr)) if mapping.get("input") else [None] * len(instr)
             
             texts = []
             for i, o, c in zip(instr, out, inp):
