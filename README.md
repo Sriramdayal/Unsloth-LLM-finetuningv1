@@ -37,7 +37,7 @@
 
 ## 📌 Overview
 
-This repo provides a **Professional Enterprise Pipeline** for finetuning HuggingFace models using:
+This repo provides a **Pipeline for finetuning models with datasets seamlessly from Huggingface using Unsloth finetuning framework**:
 
 * ⚡ **Unsloth-optimized kernels** (2× faster, 70% less VRAM)
 * 🏗️ **Modular Core Architecture**: Unified `ModelRunner` and `ModelFactory` for training and inference.
