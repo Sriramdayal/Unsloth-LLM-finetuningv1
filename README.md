@@ -55,7 +55,6 @@ For detailed instructions on using this repository as a Python library (includin
 
 👉 **[Read the Python API Documentation](documentation.md)**
 
-
 ---
 
 ## ⏱ Training Time (Estimates)
@@ -95,4 +94,8 @@ MIT
 * [HuggingFace Transformers](https://github.com/huggingface/transformers)
 * [TRL](https://github.com/huggingface/trl)
 * [PEFT](https://github.com/huggingface/peft)
+
+##  Contribution and issues: 
+
+You can contribute or raise an issue.
 
