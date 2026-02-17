@@ -52,6 +52,8 @@ You can easily run this project on Google Colab by cloning the repository.
 ## 📘 Python API Guide
 
 For detailed instructions on using this repository as a Python library (including `DataProcessor`, configuration, and custom training loops), please refer to the dedicated documentation:
+For local deployment with Nvidia GPU install CUDA and configure according to OS Platform Linux/Windows. Setup Python Virtual Env with [uv](https://docs.astral.sh/uv/) .
+Python 3.10+ version, CUDA lastes drivers and Pytorch cuda dependencies must match . Detailed local deployment witn NVIDIA GPU RTX or GTX support will be Addressed in next release stay tuned for updates.
 
 👉 **[Read the Python API Documentation](documentation.md)**
 
