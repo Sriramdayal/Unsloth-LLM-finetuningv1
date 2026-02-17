@@ -13,7 +13,7 @@ pip install git+https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
 
 The package includes a robust `DataProcessor` that handles loading, formatting, and proper tokenization (generating labels, masking inputs). Edit dataset and model path from huggingface model and datasets
 or upload your dataset in hugging face and format it in Alpaca , ChatML and  ShareGPT style  and  accodingly  format and tokenize  in below code as follows as Alpaca , ChatML and  ShareGPT. Also select the 
-datasets in huggingface that support these Alpaca , ChatML and  ShareGPT format style for best results ths compatibility while finetuning. The factors affecting training time are Lora rank , dataset size ,
+datasets in huggingface that support these Alpaca , ChatML and  ShareGPT format style for best results and compatibility while finetuning. The factors affecting training time are Lora rank , dataset size ,
 Bigger the model parameters. for more read unsloth finetuning documentation 
 [Unsloth](https://github.com/unslothai/unsloth)
 * [Unsloth](https://github.com/unslothai/unsloth)
