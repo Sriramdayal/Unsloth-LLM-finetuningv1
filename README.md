@@ -1,36 +1,36 @@
 
 ---
 
-# 🚀 LLM Finetuning — Windows-Native GPU Stack (v0.2.0)
+# 🚀 LLM Finetuning — Cross-Platform GPU Pipeline (v0.2.0)
 
-**Fast, modular LLM fine-tuning and inference — no WSL, no Triton required.**
+**Fast, modular LLM fine-tuning and inference on Windows, Linux, and macOS — fully GPU-accelerated.**
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/6c834e71-ad14-40b0-a26f-27783752c07f" width="100%" />
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Backend-llama.cpp_CUBLAS-blue?logo=nvidia" />
-  <img src="https://img.shields.io/badge/Training-BitsAndBytes_4bit-green" />
+  <img src="https://img.shields.io/badge/Linux-Unsloth_Triton-blue?logo=linux&logoColor=white" />
+  <img src="https://img.shields.io/badge/Windows-CUBLAS_QLoRA-blue?logo=windows&logoColor=white" />
+  <img src="https://img.shields.io/badge/macOS-Metal_MPS-blue?logo=apple&logoColor=white" />
+  <img src="https://img.shields.io/badge/Inference-llama.cpp-green" />
+  <img src="https://img.shields.io/badge/Training-bitsandbytes_QLoRA-green" />
   <img src="https://img.shields.io/badge/LoRA-PEFT-yellow" />
   <img src="https://img.shields.io/badge/Trainer-TRL_SFTTrainer-orange" />
-  <img src="https://img.shields.io/badge/Windows-Native_CUDA-brightgreen?logo=windows" />
   <img src="https://img.shields.io/badge/License-MIT-purple" />
 </p>
 
-# FINE-TUNING AND INFERENCE NOTEBOOKS:
+# Fine-Tuning and Inference Notebooks
+
 <p align="center">
   <a href="https://colab.research.google.com/drive/1WpbMOTuuW3E5KtcOTrkJ6AqQ3jTRRaoM?usp=sharing" target="_blank">
-    <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"/>
+    <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab — Fine-Tuning"/>
   </a>
-</p>
-<p align="center">
+  &nbsp;
   <a href="https://colab.research.google.com/drive/1_xWw9L-QgPql7sk94FJ2iJnS7VDp-Mit?usp=sharing" target="_blank">
-    <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab"/>
+    <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab — Inference"/>
   </a>
-</p>
-<!-- HuggingFace Model Badge -->
-<p align="center">
+  &nbsp;
   <a href="https://huggingface.co/black279/Qwen_LeetCoder" target="_blank">
     <img src="https://img.shields.io/badge/HuggingFace-Qwen_LeetCoder-orange?style=flat-square" alt="HuggingFace Model"/>
   </a>
@@ -40,81 +40,95 @@
 
 ## 📌 Overview
 
-This repository provides a **professional enterprise pipeline** for fine-tuning and running LLMs entirely on **Windows with a native NVIDIA GPU** — no WSL2, no Triton, no Docker required.
+A **professional enterprise pipeline** for fine-tuning and running open-source LLMs across **all major platforms** — the backend is selected automatically with zero configuration required.
 
 | Feature | Details |
 |---|---|
-| ⚡ **GPU-accelerated inference** | llama.cpp — CUBLAS (Windows), CUDA (Linux), Metal (macOS) |
-| 🏋️ **GPU-accelerated training** | Unsloth Triton (Linux) · bitsandbytes QLoRA (Windows/Linux) · MPS (macOS) |
-| 🔄 **Dual inference backends** | Auto-selects GGUF/llama.cpp or safetensors/transformers by file extension |
-| 🏗️ **Modular Architecture** | Clean separation: `ModelFactory`, `ModelRunner`, `DataProcessor` |
-| 🖥️ **Interactive Studio** | Gradio-based no-code GUI for visual configuration |
+| ⚡ **GPU inference** | llama.cpp — CUBLAS (Windows) · CUDA (Linux) · Metal (macOS) |
+| 🏋️ **GPU training** | Unsloth Triton (Linux) · bitsandbytes 4-bit QLoRA (Windows/Linux) · MPS (macOS) |
+| 🔄 **Dual inference backends** | Auto-selects: `.gguf` → llama.cpp · HF repo/dir → transformers |
+| 🤖 **Auto backend selection** | Platform detected at runtime — no config needed |
+| 🏗️ **Modular architecture** | Clean separation: `ModelFactory` · `ModelRunner` · `DataProcessor` |
+| 🖥️ **Interactive GUI** | Gradio-based no-code fine-tuning studio |
 | 🛠️ **Robust CLI** | Unified entry point for training and inference |
-| 💻 **CPU Mock Mode** | Full pipeline test without any GPU |
+| 💻 **CPU mock mode** | Full pipeline test without any GPU |
 
 ---
 
 ## 🏛️ Architecture
 
 ```
-┌────────────────────────┬────────────────────────────────────────────────────┐
-│ Platform               │ Training               Inference                   │
-├────────────────────────┼────────────────────────────────────────────────────┤
-│ Linux + NVIDIA GPU     │ Unsloth (Triton 2×)    llama.cpp CUDA              │
-│  (Recommended)         │ + bitsandbytes QLoRA   OR transformers             │
-├────────────────────────┼────────────────────────────────────────────────────┤
-│ Windows + NVIDIA GPU   │ bitsandbytes 4-bit     llama.cpp CUBLAS            │
-│  (No WSL needed)       │ NF4 QLoRA + PEFT       OR transformers             │
-├────────────────────────┼────────────────────────────────────────────────────┤
-│ macOS Apple Silicon    │ transformers float16   llama.cpp Metal (GPU)       │
-│  (M1/M2/M3/M4)         │ MPS device + PEFT      OR transformers MPS         │
-├────────────────────────┼────────────────────────────────────────────────────┤
-│ macOS Intel / CPU      │ transformers float32   llama.cpp CPU               │
-│                        │ + PEFT LoRA            OR transformers CPU         │
-└────────────────────────┴────────────────────────────────────────────────────┘
-      cudart64_12.dll  → resolved from PyTorch bundled libs (Windows)
-      Metal support    → built into llama.cpp wheel (macOS)
-      libcudart.so     → resolved from LD_LIBRARY_PATH (Linux)
+┌──────────────────────────┬────────────────────────────────────────────────┐
+│ Platform                 │ Training                  Inference             │
+├──────────────────────────┼────────────────────────────────────────────────┤
+│ 🐧 Linux + NVIDIA        │ Unsloth Triton (2× speed) llama.cpp CUDA       │
+│    (Best for training)   │ → bitsandbytes QLoRA ↩    OR transformers      │
+├──────────────────────────┼────────────────────────────────────────────────┤
+│ 🪟 Windows + NVIDIA      │ bitsandbytes 4-bit NF4    llama.cpp CUBLAS     │
+│    (No WSL required)     │ QLoRA + PEFT LoRA         OR transformers      │
+├──────────────────────────┼────────────────────────────────────────────────┤
+│ 🍎 macOS Apple Silicon   │ transformers float16      llama.cpp Metal      │
+│    (M1 / M2 / M3 / M4)  │ MPS device + PEFT LoRA    OR transformers MPS  │
+├──────────────────────────┼────────────────────────────────────────────────┤
+│ 💻 CPU / macOS Intel     │ transformers float32      llama.cpp CPU        │
+│    (No GPU)              │ + PEFT LoRA               OR transformers CPU  │
+└──────────────────────────┴────────────────────────────────────────────────┘
+
+  Windows → cudart64_12.dll auto-resolved from PyTorch bundled CUDA runtime
+  macOS   → Metal support built into llama-cpp-python wheel
+  Linux   → libcudart.so resolved via LD_LIBRARY_PATH (standard CUDA setup)
 ```
+
+> **All backend switching is automatic.** Set `model_name_or_path` — the factory detects
+> your OS, GPU, and installed packages and picks the optimal stack.
 
 ---
 
 ## 📦 Installation
 
-We recommend [uv](https://docs.astral.sh/uv/) for fast dependency management.
+We recommend [uv](https://docs.astral.sh/uv/) for fast, reliable dependency management.
 
-### 🪟 Windows — Native GPU (NVIDIA, No WSL)
+### 🪟 Windows — Native NVIDIA GPU (No WSL Required)
 
 ```bash
 git clone https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
 cd Unsloth-LLM-finetuningv1
-uv venv && uv pip install -e ".[gui]"
 
-# llama-cpp-python CUBLAS wheel (GPU inference, no CUDA Toolkit needed)
+uv venv
+uv pip install -e ".[gui]"
+
+# llama-cpp-python CUBLAS wheel — GPU inference, no CUDA Toolkit install needed
 uv pip install llama-cpp-python \
   --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124
 ```
 
-> **Why it works:** `cudart64_12.dll` is resolved automatically from PyTorch's bundled
-> CUDA runtime. No separate NVIDIA CUDA Toolkit installation required.
+> **How it works:** `cudart64_12.dll` is auto-resolved from PyTorch's bundled CUDA runtime
+> via `src/utils/llama_loader.py`. No NVIDIA CUDA Toolkit installation required.
+
+**Verify your GPU:**
+```bash
+uv run python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+# True  NVIDIA GeForce RTX 4060 Laptop GPU
+```
 
 ---
 
-### 🐧 Linux — Full Unsloth Stack (Recommended for Training Speed)
+### 🐧 Linux — Full Unsloth Stack (Fastest Training)
 
 ```bash
 git clone https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
 cd Unsloth-LLM-finetuningv1
+
 pip install -e ".[linux,gui]"
 
-# llama-cpp-python with CUDA kernels
+# llama-cpp-python CUDA wheel
 pip install llama-cpp-python \
   --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124
 ```
 
-> **Training:** Uses Unsloth Triton kernels when installed — **2× faster** and
-> **70% less VRAM** vs. standard transformers. Falls back to bitsandbytes QLoRA
-> automatically if Unsloth is not available.
+> **Training:** Uses Unsloth Triton kernels — **2× faster** and **70% less VRAM** vs.
+> standard transformers. Automatically falls back to bitsandbytes QLoRA if Unsloth
+> is not installed.
 
 ---
 
@@ -123,15 +137,16 @@ pip install llama-cpp-python \
 ```bash
 git clone https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
 cd Unsloth-LLM-finetuningv1
+
 pip install -e ".[macos,gui]"
 
-# llama-cpp-python with Metal GPU support
+# llama-cpp-python with Metal GPU acceleration
 CMAKE_ARGS="-DGGML_METAL=on" pip install llama-cpp-python
 ```
 
-> **Training:** Uses Apple MPS device with `float16`. bitsandbytes 4-bit is not
-> supported on MPS, so models load in full precision.
-> **Inference:** llama.cpp uses Metal GPU — fast and power-efficient.
+> **Training:** Uses Apple MPS device with `float16`. Note: bitsandbytes 4-bit is not
+> yet supported on MPS, so models run in full `float16` precision.
+> **Inference:** llama.cpp uses Metal GPU — fast and energy-efficient.
 
 ---
 
@@ -141,6 +156,8 @@ CMAKE_ARGS="-DGGML_METAL=on" pip install llama-cpp-python
 pip install -e ".[cpu,gui]"
 pip install llama-cpp-python   # Standard CPU build
 ```
+
+---
 
 ### 🐳 Docker
 
@@ -152,35 +169,21 @@ docker compose up --build
 
 ## 🛠 Usage Guide
 
-### 🚀 CLI (Command Line Interface)
+### 🚀 CLI — Training
 
-**Fine-Tuning (Windows GPU — QLoRA 4-bit):**
+**GPU training (auto-selects backend for your OS):**
 ```bash
 uv run unsloth-cli train \
   --model_name_or_path "unsloth/llama-3-8b-bnb-4bit" \
   --dataset_name "yahma/alpaca-cleaned"
 ```
 
-**Fine-Tuning from a config file:**
+**Training from a config file:**
 ```bash
 uv run unsloth-cli train --config config.yaml
 ```
 
-**Inference — GGUF model (llama.cpp CUBLAS, fastest on Windows):**
-```bash
-uv run unsloth-cli infer \
-  --model "path/to/model.gguf" \
-  --prompt "Write a Python binary search implementation."
-```
-
-**Inference — HuggingFace / safetensors model:**
-```bash
-uv run unsloth-cli infer \
-  --model "outputs/lora_adapters" \
-  --prompt "What is machine learning?"
-```
-
-**CPU Mock Mode (test pipeline without GPU):**
+**CPU Mock Mode (test without a GPU):**
 ```bash
 uv run unsloth-cli train \
   --model_name_or_path "any-model-id" \
@@ -188,7 +191,27 @@ uv run unsloth-cli train \
   --dataset_name "yahma/alpaca-cleaned"
 ```
 
-### 🎨 GUI (Fine-Tuning Studio)
+---
+
+### 🔍 CLI — Inference
+
+**GGUF model (llama.cpp — CUBLAS / CUDA / Metal, auto-detected):**
+```bash
+uv run unsloth-cli infer \
+  --model "path/to/model.gguf" \
+  --prompt "Write a Python binary search implementation."
+```
+
+**HuggingFace safetensors / LoRA adapter:**
+```bash
+uv run unsloth-cli infer \
+  --model "outputs/lora_adapters" \
+  --prompt "What is machine learning?"
+```
+
+---
+
+### 🎨 GUI — Fine-Tuning Studio
 
 ```bash
 uv run unsloth-gui
@@ -196,35 +219,58 @@ uv run unsloth-gui
 
 ---
 
-## 📘 Python API Guide
+## 📘 Python API
 
 ```python
 from src import ModelConfig, TrainConfig
 from src.core.model_runner import ModelRunner
 from src.data import DataProcessor
 
-# ── Training ──────────────────────────────────────────────────────────
+# ── Training (backend auto-selected per OS) ──────────────────────────────────
 config = ModelConfig(
     model_name_or_path="unsloth/llama-3-8b-bnb-4bit",
-    load_in_4bit=True,   # 4-bit NF4 QLoRA via bitsandbytes
+    load_in_4bit=True,   # NF4 4-bit QLoRA via bitsandbytes (CUDA/Linux/Windows)
     lora_r=16,
 )
 runner = ModelRunner(config)
-model, tokenizer = runner.setup_for_training()
+model, tokenizer = runner.setup_for_training()  # Applies LoRA automatically
 
-# ── Inference: GGUF / llama.cpp CUBLAS ───────────────────────────────
-gguf_config = ModelConfig(model_name_or_path="path/to/model.gguf")
-gguf_runner = ModelRunner(gguf_config)
+# ── Inference: GGUF → llama.cpp (CUBLAS / CUDA / Metal) ─────────────────────
+gguf_runner = ModelRunner(ModelConfig(model_name_or_path="model.gguf"))
 gguf_runner.setup_for_inference()
-print(gguf_runner.generate("Explain gradient descent."))
+print(gguf_runner.generate("Explain gradient descent in simple terms."))
 
-# ── Inference: HF safetensors + LoRA adapter ─────────────────────────
+# ── Inference: HF safetensors + LoRA adapter ─────────────────────────────────
 hf_runner = ModelRunner(config)
 hf_runner.setup_for_inference(adapter_path="outputs/lora_adapters")
-print(hf_runner.generate("What is a transformer?"))
+print(hf_runner.generate("What is a transformer model?"))
 ```
 
 👉 **[Read the Full Python API Documentation](documentation.md)**
+
+---
+
+## ⚙️ Config File Reference
+
+`config.yaml` example:
+```yaml
+model_name_or_path: "unsloth/llama-3-8b-bnb-4bit"
+load_in_4bit: true
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+dataset_name: "yahma/alpaca-cleaned"
+learning_rate: 0.0002
+num_train_epochs: 3
+batch_size: 2
+gradient_accumulation_steps: 4
+output_dir: "outputs/my_model"
+push_to_hub: false
+```
+
+```bash
+uv run unsloth-cli train --config config.yaml
+```
 
 ---
 
@@ -232,36 +278,38 @@ print(hf_runner.generate("What is a transformer?"))
 
 | Variable | Default | Description |
 |---|---|---|
-| `LLAMA_N_GPU_LAYERS` | `-1` | Number of llama.cpp layers to offload to GPU. `-1` = all layers. |
+| `LLAMA_N_GPU_LAYERS` | `-1` | llama.cpp GPU layers. `-1` = all on GPU, `0` = CPU only. |
 
 ```bash
-# Example: offload only 20 layers (useful if VRAM is limited)
-set LLAMA_N_GPU_LAYERS=20
-uv run unsloth-cli infer --model model.gguf --prompt "Hello"
+# Limit GPU layers if VRAM is tight
+set LLAMA_N_GPU_LAYERS=20          # Windows
+export LLAMA_N_GPU_LAYERS=20       # Linux / macOS
 ```
 
 ---
 
-## ⏱ Training Time (Estimates on RTX 4060 8GB)
+## ⏱ Training Time Estimates
 
-| Dataset Size | QLoRA 4-bit (this stack) | Notes |
+### On RTX 4060 Laptop GPU (8 GB VRAM, QLoRA 4-bit)
+
+| Dataset | Time | Settings |
 |---|---|---|
 | 5k samples | ~10–20 min | Alpaca-style |
-| 50k samples | ~2–4 hrs | Alpaca-cleaned |
+| 50k samples | ~2–4 hrs | `alpaca-cleaned` |
 | 500k samples | ~20–30 hrs | Large corpus |
 
-> Times assume `batch_size=2`, `gradient_accumulation_steps=4`, `lora_r=16`, `max_seq_length=2048`.
+> Assumes `batch_size=2`, `gradient_accumulation_steps=4`, `lora_r=16`, `max_seq_length=2048`.
 
 ### Broader GPU Reference
 
 | GPU | Small (50k) | Large (500k–800k) |
 |---|---|---|
-| **A100** | 20–40 min | 5–7 hours |
+| **A100 80GB** | 20–40 min | 5–7 hrs |
 | **RTX 4090** | 1–2 hrs | 18–22 hrs |
 | **RTX 4060 / 3090** | 2–4 hrs | 28–34 hrs |
-| **Tesla T4** | 4–6 hrs | 55–70 hrs |
+| **Tesla T4 (Colab)** | 4–6 hrs | 55–70 hrs |
 
-> Training time scales linearly with dataset size and LoRA rank.
+> Linux + Unsloth Triton is ~2× faster across all GPUs compared to this table.
 
 ---
 
@@ -274,24 +322,24 @@ src/
 ├── data.py                 # DataProcessor (load, format, tokenize)
 ├── train.py                # train_model() — TRL SFTTrainer wrapper
 ├── core/
-│   ├── factory.py          # ModelFactory: bitsandbytes 4-bit + PEFT LoRA
-│   └── model_runner.py     # ModelRunner: GGUF/llama.cpp + HF dual-path
+│   ├── factory.py          # Cross-platform ModelFactory (Unsloth / QLoRA / MPS)
+│   └── model_runner.py     # ModelRunner: GGUF/llama.cpp + HF dual-backend
 └── utils/
-    ├── env.py              # HardwareManager (GPU stats, device detection)
-    └── llama_loader.py     # Windows DLL bootstrap for llama-cpp-python
+    ├── env.py              # HardwareManager (CUDA / MPS / CPU detection)
+    └── llama_loader.py     # Platform DLL/library bootstrap for llama-cpp-python
 
 scripts/
-├── app.py                  # Gradio GUI
+├── app.py                  # Gradio GUI (unsloth-gui)
 ├── run_training.py         # Script entry point
 ├── run_inference.py        # Script entry point
-└── smoke_test.py           # Import validation test
+└── smoke_test.py           # Import validation
 ```
 
 ---
 
 ## 🧪 Smoke Test
 
-Validates all imports and detects GPU correctly:
+Validates all imports and reports the active backend:
 
 ```bash
 uv run python scripts/smoke_test.py
@@ -307,14 +355,17 @@ MIT
 
 ## 🔗 Credits
 
-* [llama.cpp](https://github.com/ggerganov/llama.cpp) — C++ inference engine with CUBLAS GPU support
-* [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) — Python bindings with prebuilt CUDA wheels
+* [llama.cpp](https://github.com/ggerganov/llama.cpp) — C++ LLM inference with CUDA / Metal / CPU backends
+* [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) — Python bindings with prebuilt GPU wheels
+* [Unsloth](https://github.com/unslothai/unsloth) — Triton-optimised LoRA training (Linux/WSL2)
 * [HuggingFace Transformers](https://github.com/huggingface/transformers)
-* [BitsAndBytes](https://github.com/TimDettmers/bitsandbytes) — 4-bit quantization
+* [BitsAndBytes](https://github.com/TimDettmers/bitsandbytes) — 4-bit NF4 quantization
 * [PEFT](https://github.com/huggingface/peft) — LoRA adapters
 * [TRL](https://github.com/huggingface/trl) — SFTTrainer
-* [Unsloth](https://github.com/unslothai/unsloth) — Original inspiration (Linux/WSL2 path)
 
-## Contribution and Issues
+---
 
-Feel free to contribute by opening a Pull Request or raising an issue.
+## 🤝 Contribution and Issues
+
+Feel free to contribute by opening a Pull Request or raising an issue on
+[GitHub](https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1/issues).
