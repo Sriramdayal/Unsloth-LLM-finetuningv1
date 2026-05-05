@@ -289,19 +289,6 @@ export LLAMA_N_GPU_LAYERS=20       # Linux / macOS
 ---
 
 ## ⏱ Training Time Estimates
-
-### On RTX 4060 Laptop GPU (8 GB VRAM, QLoRA 4-bit)
-
-| Dataset | Time | Settings |
-|---|---|---|
-| 5k samples | ~10–20 min | Alpaca-style |
-| 50k samples | ~2–4 hrs | `alpaca-cleaned` |
-| 500k samples | ~20–30 hrs | Large corpus |
-
-> Assumes `batch_size=2`, `gradient_accumulation_steps=4`, `lora_r=16`, `max_seq_length=2048`.
-
-### Broader GPU Reference
-
 | GPU | Small (50k) | Large (500k–800k) |
 |---|---|---|
 | **A100 80GB** | 20–40 min | 5–7 hrs |
