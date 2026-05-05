@@ -54,9 +54,31 @@ unsloth = [
     "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git",
 ]
 
-# Windows-native GPU backend: llama.cpp + CUBLAS (no Triton / WSL required)
-# Install with: uv pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124
+# ── Platform-specific GPU backends ────────────────────────────────────────
+
+# Windows NVIDIA: llama.cpp CUBLAS + bitsandbytes QLoRA (no Triton / WSL needed)
+# Install: uv pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124
 windows = [
+    "llama-cpp-python>=0.3.0",
+]
+
+# Linux NVIDIA: full Unsloth Triton kernels (2× speed, 70% less VRAM)
+# Install: pip install unsloth-finetuning[linux]
+linux = [
+    "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git",
+    "llama-cpp-python>=0.3.0",
+    "triton>=2.1.0; sys_platform == 'linux'",
+]
+
+# macOS Apple Silicon: MPS training + Metal GGUF inference
+# Install: CMAKE_ARGS='-DGGML_METAL=on' pip install llama-cpp-python
+#          then: pip install unsloth-finetuning[macos]
+macos = [
+    "llama-cpp-python>=0.3.0",
+]
+
+# CPU-only: no GPU required (slow, for testing / non-GPU machines)
+cpu = [
     "llama-cpp-python>=0.3.0",
 ]
 
@@ -87,12 +109,23 @@ gpu = [
     "nvidia-nvtx-cu12>=12.1.0",
 ]
 
+# Legacy Linux/Unsloth full install
 all = [
-    "unsloth-finetuning[dev,gui,gpu,unsloth]",
+    "unsloth-finetuning[dev,gui,gpu,linux]",
 ]
 
+# Platform meta-extras
 all-windows = [
     "unsloth-finetuning[dev,gui,windows]",
+]
+all-linux = [
+    "unsloth-finetuning[dev,gui,linux]",
+]
+all-macos = [
+    "unsloth-finetuning[dev,gui,macos]",
+]
+all-cpu = [
+    "unsloth-finetuning[dev,gui,cpu]",
 ]
 
 [project.urls]

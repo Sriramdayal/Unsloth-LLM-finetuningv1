@@ -44,9 +44,9 @@ This repository provides a **professional enterprise pipeline** for fine-tuning 
 
 | Feature | Details |
 |---|---|
-| ⚡ **GPU-accelerated inference** | llama.cpp CUBLAS backend — GGUF models run directly on GPU via precompiled C++ kernels |
-| 🏋️ **GPU-accelerated training** | bitsandbytes 4-bit NF4 QLoRA + PEFT LoRA + TRL SFTTrainer, all CUDA-native on Windows |
-| 🔄 **Dual inference backends** | Auto-selects GGUF/llama.cpp or safetensors/transformers based on file extension |
+| ⚡ **GPU-accelerated inference** | llama.cpp — CUBLAS (Windows), CUDA (Linux), Metal (macOS) |
+| 🏋️ **GPU-accelerated training** | Unsloth Triton (Linux) · bitsandbytes QLoRA (Windows/Linux) · MPS (macOS) |
+| 🔄 **Dual inference backends** | Auto-selects GGUF/llama.cpp or safetensors/transformers by file extension |
 | 🏗️ **Modular Architecture** | Clean separation: `ModelFactory`, `ModelRunner`, `DataProcessor` |
 | 🖥️ **Interactive Studio** | Gradio-based no-code GUI for visual configuration |
 | 🛠️ **Robust CLI** | Unified entry point for training and inference |
@@ -57,23 +57,24 @@ This repository provides a **professional enterprise pipeline** for fine-tuning 
 ## 🏛️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Windows-Native GPU Stack                      │
-├──────────────────────────┬──────────────────────────────────────┤
-│        TRAINING          │            INFERENCE                  │
-│                          │                                       │
-│  transformers            │  Path A — GGUF (.gguf file)          │
-│  AutoModelForCausalLM    │  └─ llama-cpp-python                 │
-│  + BitsAndBytes 4-bit    │     └─ ggml-cuda.dll (CUBLAS)        │
-│    (NF4 QLoRA)           │        All layers on GPU  ✅         │
-│  + PEFT LoraConfig       │                                       │
-│  + TRL SFTTrainer        │  Path B — Safetensors (HF repo)      │
-│  + adamw_8bit            │  └─ transformers generate()          │
-│  No Triton  ✅           │  └─ Optional: PEFT adapter  ✅       │
-│  No WSL2   ✅            │  No Triton  ✅  No WSL2  ✅          │
-└──────────────────────────┴──────────────────────────────────────┘
-      cudart64_12.dll resolved from PyTorch's bundled CUDA runtime
-      — no separate CUDA Toolkit installation required
+┌────────────────────────┬────────────────────────────────────────────────────┐
+│ Platform               │ Training               Inference                   │
+├────────────────────────┼────────────────────────────────────────────────────┤
+│ Linux + NVIDIA GPU     │ Unsloth (Triton 2×)    llama.cpp CUDA              │
+│  (Recommended)         │ + bitsandbytes QLoRA   OR transformers             │
+├────────────────────────┼────────────────────────────────────────────────────┤
+│ Windows + NVIDIA GPU   │ bitsandbytes 4-bit     llama.cpp CUBLAS            │
+│  (No WSL needed)       │ NF4 QLoRA + PEFT       OR transformers             │
+├────────────────────────┼────────────────────────────────────────────────────┤
+│ macOS Apple Silicon    │ transformers float16   llama.cpp Metal (GPU)       │
+│  (M1/M2/M3/M4)         │ MPS device + PEFT      OR transformers MPS         │
+├────────────────────────┼────────────────────────────────────────────────────┤
+│ macOS Intel / CPU      │ transformers float32   llama.cpp CPU               │
+│                        │ + PEFT LoRA            OR transformers CPU         │
+└────────────────────────┴────────────────────────────────────────────────────┘
+      cudart64_12.dll  → resolved from PyTorch bundled libs (Windows)
+      Metal support    → built into llama.cpp wheel (macOS)
+      libcudart.so     → resolved from LD_LIBRARY_PATH (Linux)
 ```
 
 ---
@@ -82,40 +83,66 @@ This repository provides a **professional enterprise pipeline** for fine-tuning 
 
 We recommend [uv](https://docs.astral.sh/uv/) for fast dependency management.
 
-### 1. Windows — Native GPU Setup (Recommended)
+### 🪟 Windows — Native GPU (NVIDIA, No WSL)
 
 ```bash
-# Clone the repository
 git clone https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
 cd Unsloth-LLM-finetuningv1
+uv venv && uv pip install -e ".[gui]"
 
-# Create virtual environment and install core deps
-uv venv
-uv pip install -e ".[gui]"
-
-# Install llama-cpp-python with CUBLAS (GPU-accelerated inference)
-# This wheel bundles precompiled ggml-cuda.dll — no CUDA Toolkit needed
+# llama-cpp-python CUBLAS wheel (GPU inference, no CUDA Toolkit needed)
 uv pip install llama-cpp-python \
   --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124
 ```
 
-> **Note:** The `cudart64_12.dll` dependency is resolved automatically from PyTorch's
-> bundled CUDA runtime. No separate NVIDIA CUDA Toolkit installation is required.
+> **Why it works:** `cudart64_12.dll` is resolved automatically from PyTorch's bundled
+> CUDA runtime. No separate NVIDIA CUDA Toolkit installation required.
 
-### 2. Verify GPU is detected
+---
 
-```bash
-uv run python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0))"
-# Expected: True  NVIDIA GeForce RTX 4060 Laptop GPU
-```
-
-### 3. Linux / WSL2 Setup (with original Unsloth kernels)
+### 🐧 Linux — Full Unsloth Stack (Recommended for Training Speed)
 
 ```bash
-uv pip install -e ".[unsloth,gpu,gui]"
+git clone https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
+cd Unsloth-LLM-finetuningv1
+pip install -e ".[linux,gui]"
+
+# llama-cpp-python with CUDA kernels
+pip install llama-cpp-python \
+  --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124
 ```
 
-### 4. Docker Setup
+> **Training:** Uses Unsloth Triton kernels when installed — **2× faster** and
+> **70% less VRAM** vs. standard transformers. Falls back to bitsandbytes QLoRA
+> automatically if Unsloth is not available.
+
+---
+
+### 🍎 macOS — Apple Silicon (M1 / M2 / M3 / M4)
+
+```bash
+git clone https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
+cd Unsloth-LLM-finetuningv1
+pip install -e ".[macos,gui]"
+
+# llama-cpp-python with Metal GPU support
+CMAKE_ARGS="-DGGML_METAL=on" pip install llama-cpp-python
+```
+
+> **Training:** Uses Apple MPS device with `float16`. bitsandbytes 4-bit is not
+> supported on MPS, so models load in full precision.
+> **Inference:** llama.cpp uses Metal GPU — fast and power-efficient.
+
+---
+
+### 💻 CPU-Only (Any OS, No GPU)
+
+```bash
+pip install -e ".[cpu,gui]"
+pip install llama-cpp-python   # Standard CPU build
+```
+
+### 🐳 Docker
 
 ```bash
 docker compose up --build
