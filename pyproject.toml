@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "unsloth-finetuning"
-version = "0.1.0"
+version = "0.2.0"
 description = "Professional Enterprise Pipeline for Unsloth LLM Finetuning with LoRA, TRL, and modular architecture"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -36,7 +36,6 @@ classifiers = [
 ]
 
 dependencies = [
-    "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git",
     "torch>=2.5.1",
     "transformers>=4.45.0",
     "datasets>=2.14.0",
@@ -51,6 +50,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+unsloth = [
+    "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git",
+]
+
+# Windows-native GPU backend: llama.cpp + CUBLAS (no Triton / WSL required)
+# Install with: uv pip install llama-cpp-python --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124
+windows = [
+    "llama-cpp-python>=0.3.0",
+]
+
 dev = [
     "pytest>=7.4.0",
     "black>=23.0.0",
@@ -74,14 +83,16 @@ gpu = [
     "nvidia-curand-cu12>=10.3.2",
     "nvidia-cusolver-cu12>=11.4.5",
     "nvidia-cusparse-cu12>=12.1.0",
-    "nvidia-nccl-cu12>=2.18.1",
+    "nvidia-nccl-cu12>=2.18.1; sys_platform != 'win32'",
     "nvidia-nvtx-cu12>=12.1.0",
 ]
 
-
-
 all = [
     "unsloth-finetuning[dev,gui,gpu,unsloth]",
+]
+
+all-windows = [
+    "unsloth-finetuning[dev,gui,windows]",
 ]
 
 [project.urls]
@@ -119,3 +130,21 @@ exclude = '''
 [tool.isort]
 profile = "black"
 line_length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --tb=short"
+
+[tool.uv]
+managed = true
+
+[[tool.uv.index]]
+name = "pytorch-cuda"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cuda" }
+torchvision = { index = "pytorch-cuda" }
+torchaudio = { index = "pytorch-cuda" }

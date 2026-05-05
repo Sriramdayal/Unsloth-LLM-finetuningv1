@@ -1,179 +1,245 @@
-# Unsloth Finetuning Package Documentation
+# Unsloth Finetuning Package — API Documentation (v0.2.0)
 
-This guide provides detailed instructions on how to use `unsloth-finetuning` as a Python library for building custom training pipelines.
+This guide covers the Python API for `unsloth-finetuning`.  
+The package now uses a **Windows-native GPU stack** — no Triton, no WSL2 required.
+
+| Layer | Technology |
+|---|---|
+| Training | `transformers` + `bitsandbytes` 4-bit NF4 QLoRA + `peft` + `trl` SFTTrainer |
+| Inference (GGUF) | `llama-cpp-python` with CUBLAS precompiled binaries |
+| Inference (HF) | `transformers` generate() with optional PEFT adapters |
+
+---
 
 ## 1. Installation
 
-### From PyPI (Development Version)
+### Windows (Native GPU — Recommended)
 ```bash
-pip install git+https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1.git
+uv pip install -e ".[gui]"
+
+# Install llama-cpp-python CUBLAS wheel (GPU-accelerated GGUF inference)
+uv pip install llama-cpp-python \
+  --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cu124
 ```
 
-## 2. Dataset Preparation
+### Linux / WSL2 (original Unsloth kernels)
+```bash
+uv pip install -e ".[unsloth,gpu,gui]"
+```
 
-The package includes a robust `DataProcessor` that handles loading, formatting, and proper tokenization (generating labels, masking inputs). Edit dataset and model path from huggingface model and datasets
-or upload your dataset in hugging face and format it in Alpaca , ChatML and  ShareGPT style  and  accodingly  format and tokenize  in below code as follows as Alpaca , ChatML and  ShareGPT. Also select the 
-datasets in huggingface that support these Alpaca , ChatML and  ShareGPT format style for best results and compatibility while finetuning. The factors affecting training time are Lora rank , dataset size ,
-Bigger the model parameters. for more read unsloth finetuning documentation 
-[Unsloth](https://github.com/unslothai/unsloth)
-* [Unsloth](https://github.com/unslothai/unsloth)
-* [HuggingFace Transformers](https://github.com/huggingface/transformers)
-* [TRL](https://github.com/huggingface/trl)
-* [PEFT](https://github.com/huggingface/peft)
+---
 
-### Loading & Formatting
+## 2. ModelRunner API
+
+`ModelRunner` is the high-level facade that handles model loading, LoRA patching,
+and inference. It auto-selects the backend based on the model path:
+
+| `model_name_or_path` ends in | Backend used |
+|---|---|
+| `.gguf` | llama-cpp-python (CUBLAS, GPU) |
+| HF repo ID or directory | transformers (CUDA via torch) |
+
+### Training Setup
 ```python
-import unsloth
-from unsloth import FastLanguageModel
-from src.config import ModelConfig, TrainConfig
+from src import ModelConfig
+from src.core.model_runner import ModelRunner
+
+config = ModelConfig(
+    model_name_or_path="unsloth/llama-3-8b-bnb-4bit",
+    load_in_4bit=True,   # NF4 4-bit QLoRA via bitsandbytes
+    lora_r=16,
+    lora_alpha=32,
+)
+
+runner = ModelRunner(config)
+model, tokenizer = runner.setup_for_training()  # applies LoRA automatically
+```
+
+### Inference — GGUF (llama.cpp CUBLAS, fastest on Windows)
+```python
+from src import ModelConfig
+from src.core.model_runner import ModelRunner
+
+config = ModelConfig(model_name_or_path="path/to/model.gguf")
+runner = ModelRunner(config)
+runner.setup_for_inference()
+
+response = runner.generate("Explain gradient descent in simple terms.")
+print(response)
+```
+
+### Inference — HuggingFace / safetensors + LoRA adapter
+```python
+config = ModelConfig(model_name_or_path="meta-llama/Llama-3-8b-hf")
+runner = ModelRunner(config)
+runner.setup_for_inference(adapter_path="outputs/lora_adapters")
+
+response = runner.generate("Write a Python quicksort.")
+print(response)
+```
+
+---
+
+## 3. Dataset Preparation
+
+`DataProcessor` handles loading, formatting, and tokenization.
+
+```python
+from src import ModelConfig, TrainConfig
 from src.data import DataProcessor
-from transformers import AutoTokenizer
 
-# 1. Setup Configs
-model_config = ModelConfig(
-    model_name_or_path="unsloth/mistral-7b-bnb-4bit",
-    load_in_4bit=True
-)
-train_config = TrainConfig(
-    dataset_name="bowen-upenn/PersonaMem-v2",
-    dataset_text_column="text"
-)
+model_cfg = ModelConfig(model_name_or_path="unsloth/llama-3-8b-bnb-4bit")
+train_cfg = TrainConfig(dataset_name="yahma/alpaca-cleaned")
 
-# 2. Initialize Tokenizer (usually comes from model, using dummy here for logic demo)
-tokenizer = AutoTokenizer.from_pretrained("unsloth/mistral-7b-bnb-4bit")
+processor = DataProcessor(model_cfg, train_cfg, tokenizer)
+processor.load_dataset(split="train")
 
-# 3. Process Data
-processor = DataProcessor(model_config, train_config, tokenizer)
-processor.load_dataset(split="train_text") # Corrected: Specify the 'train_text' split
-
-# Optional: Inspect detected columns
-# processor.validate_columns()
-
-# 4. Format & Tokenize
-# This applies the prompt template and tokenizes the result
+# style: "alpaca" | "chat" | "movie_recommender" | "auto"
 dataset = processor.format_and_tokenize(style="alpaca")
 ```
 
-### Dynamic Column Support
-The processor automatically detects columns.
-- **Pre-formatted**: If a `text` column exists, it uses it directly.
-- **Automatic**: Scans for `instruction`, `input`, `output`, `prompt`, `response`, etc.
-- **Fallback**: Uses the first two columns as `instruction` and `output` if no standard names are found.
+### Dynamic Column Detection
+The processor auto-detects dataset structure:
+- **Pre-formatted**: `text` or `content` columns used directly.
+- **Chat**: `conversations` or `messages` → ChatML format.
+- **Instructional**: `instruction`, `input`, `output`.
+- **Fallback**: Positional columns (0 = instruction, 1 = output).
 
-## 3. Model Loading & Configuration
+---
 
-We use `unsloth.FastLanguageModel` for optimized loading.
+## 4. ModelFactory (Advanced)
+
+Use `ModelFactory` directly for more control.
 
 ```python
-import unsloth
-from unsloth import FastLanguageModel
+from src.core.factory import ModelFactory
+from src.config import ModelConfig
 
-max_seq_len = 2048
+config = ModelConfig(
+    model_name_or_path="unsloth/llama-3-8b-bnb-4bit",
+    load_in_4bit=True,
+)
 
-# 1. Load Base Model (If not loaded in previous step)
-# model, tokenizer = FastLanguageModel.from_pretrained(...)
+# Load base model with bitsandbytes 4-bit NF4 quantisation
+model, tokenizer = ModelFactory.create_model_and_tokenizer(config)
 
-# 2. Add LoRA Adapters
-model = FastLanguageModel.get_peft_model(
-    model,
-    r=16,
-    lora_alpha=16,
-    lora_dropout=0,
-    target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
-    bias="none",
-    use_gradient_checkpointing="unsloth", 
-    random_state=3407,
+# Apply PEFT LoRA adapters
+model = ModelFactory.apply_lora(model, config)
+
+# Switch to inference mode (eval + no grad)
+model = ModelFactory.prepare_for_inference(model)
+```
+
+### BitsAndBytes Config details
+When `load_in_4bit=True`, the factory uses:
+```python
+BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_quant_type="nf4",           # Best accuracy for QLoRA
+    bnb_4bit_compute_dtype=bfloat16,     # or float16 if bfloat16 unsupported
+    bnb_4bit_use_double_quant=True,      # Nested quant saves ~0.4 GB extra
 )
 ```
 
-## 4. Training
+---
 
-We recommend using HuggingFace TRL's `SFTTrainer`.
+## 5. Training Orchestration
+
+`train_model()` wraps TRL's `SFTTrainer` with hardware-aware defaults.
 
 ```python
-import unsloth
-from unsloth import FastLanguageModel
-from trl import SFTTrainer
-from transformers import TrainingArguments
+from src.train import train_model
+from src.config import ModelConfig, TrainConfig
 
-trainer = SFTTrainer(
+train_cfg = TrainConfig(
+    dataset_name="yahma/alpaca-cleaned",
+    output_dir="outputs/my_model",
+    batch_size=2,
+    gradient_accumulation_steps=4,
+    learning_rate=2e-4,
+    num_train_epochs=3,
+)
+
+stats, output_path = train_model(
     model=model,
     tokenizer=tokenizer,
-    train_dataset=dataset,
-    dataset_text_field="text",
-    max_seq_length=max_seq_len,
-    args=TrainingArguments(
-        output_dir="outputs",
-        per_device_train_batch_size=2,
-        gradient_accumulation_steps=4,
-        max_steps=60, # or num_train_epochs=1
-        learning_rate=2e-4,
-        fp16=True,
-        logging_steps=1,
-    ),
+    dataset=dataset,
+    train_config=train_cfg,
+    model_config=model_cfg,
 )
-
-trainer.train()
 ```
 
-## 5. Inference
+**Key behaviours:**
+- **Auto-Precision**: Selects `bf16` if supported by GPU, else `fp16`.
+- **Optimized Optimizer**: Uses `adamw_8bit` on CUDA, `adamw_torch` on CPU.
+- **Memory Management**: Clears CUDA cache before and after training.
+- **Mock Mode**: `model_config.use_mock = True` simulates training without a GPU.
 
-For inference, use the `FastLanguageModel.for_inference` context.
+---
+
+## 6. CLI Reference
+
+```
+unsloth-cli <subcommand> [options]
+```
+
+| Subcommand | Purpose | Key Arguments |
+|---|---|---|
+| `train` | Start fine-tuning | `--config`, `--model_name_or_path`, `--dataset_name` |
+| `infer` | Run inference | `--model`, `--prompt` |
+
+### Config File (`config.yaml`)
+```yaml
+model_name_or_path: "unsloth/llama-3-8b-bnb-4bit"
+load_in_4bit: true
+lora_r: 16
+lora_alpha: 32
+dataset_name: "yahma/alpaca-cleaned"
+learning_rate: 0.0002
+num_train_epochs: 3
+output_dir: "outputs/my_model"
+```
+
+```bash
+uv run unsloth-cli train --config config.yaml
+```
+
+---
+
+## 7. Windows DLL Bootstrap
+
+On Windows, `llama-cpp-python` requires `cudart64_12.dll` to GPU-accelerate inference.
+The package resolves this automatically from PyTorch's bundled CUDA runtime —
+**no separate CUDA Toolkit install is needed**.
+
+The bootstrap (`src/utils/llama_loader.py`) runs transparently when you call
+`runner.setup_for_inference()` with a `.gguf` path. You can also call it manually:
 
 ```python
-import unsloth
-from unsloth import FastLanguageModel
-FastLanguageModel.for_inference(model)
-
-prompt = "Below is an instruction... ### Instruction:\nExplain quantum computing.\n\n### Response:\n"
-inputs = tokenizer([prompt], return_tensors="pt").to("cuda")
-
-outputs = model.generate(**inputs, max_new_tokens=128, use_cache=True)
-print(tokenizer.decode(outputs[0]))
+from src.utils.llama_loader import bootstrap_windows_cuda_dlls
+bootstrap_windows_cuda_dlls()  # Safe to call multiple times (no-op after first call)
 ```
 
-## 6. Exporting
+### Environment Variables
 
-Save your finetuned adapters or merged model.
+| Variable | Default | Description |
+|---|---|---|
+| `LLAMA_N_GPU_LAYERS` | `-1` | GPU layers for llama.cpp. `-1` = all on GPU. |
+
+---
+
+## 8. HardwareManager
 
 ```python
-# Save LoRA adapters only (Lightweight)
-model.save_pretrained("outputs/lora_adapters")
+from src.utils.env import HardwareManager
 
-# Save Merged Model (GGUF/VLLM ready)
-model.save_pretrained_merged("outputs/merged_model", tokenizer, save_method="merged_16bit")
+# Print a system report
+HardwareManager.log_system_report()
+
+# Get the best device
+device = HardwareManager.get_device()  # "cuda" | "mps" | "cpu"
+
+# Get VRAM stats
+stats = HardwareManager.get_memory_stats()
+# {'device': 'NVIDIA GeForce RTX 4060 ...', 'total_gb': 8.0, ...}
 ```
-
-## 7. CLI Integration API
-
-The CLI can be controlled programmatically using its configuration dataclasses. This is useful for building custom grid searches or automated orchestration scripts.
-
-### Programmatic Config Loading
-```python
-import unsloth
-from unsloth import FastLanguageModel
-from src.config import ModelConfig, TrainConfig
-from transformers import HfArgumentParser
-
-parser = HfArgumentParser((ModelConfig, TrainConfig))
-
-# Load from YAML
-model_cfg, train_cfg = parser.parse_json_file(json_file="configs/default_config.yaml")
-
-# Override specific parameters
-train_cfg.num_train_epochs = 5
-train_cfg.learning_rate = 5e-5
-
-# Delegate to training engine
-from src.train import train_model
-# ... model loading logic ...
-```
-
-### CLI Command Layout
-The `unsloth-cli` provides a direct interface to the `src.cli:main` function.
-
-| Interface | Input Format | Primary Action |
-| :--- | :--- | :--- |
-| **Config Mode** | `unsloth-cli <file>.yaml` | Loads all params from file. |
-| **Flag Mode** | `unsloth-cli --key val` | Parses individual arguments. |
-| **Mixed Mode** | Not supported | CLI flags take precedence when no file is provided. |

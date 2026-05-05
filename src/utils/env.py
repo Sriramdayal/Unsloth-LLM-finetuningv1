@@ -1,27 +1,36 @@
-import torch
+"""
+Hardware detection and environment utilities for the Unsloth Pipeline.
+"""
+
+from __future__ import annotations
+
+import logging
 import os
 import platform
-import logging
+from typing import Dict, Union
+
+import torch
 
 logger = logging.getLogger(__name__)
+
 
 class HardwareManager:
     """
     Centralized utility for hardware detection, memory management, and environment checks.
     """
-    
+
     @staticmethod
-    def get_device():
+    def get_device() -> str:
         """Returns the best available device (cuda, mps, cpu)."""
         if torch.cuda.is_available():
             return "cuda"
-        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-            # Note: Unsloth doesn't support MPS well yet, but good for general torch logic
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            # Note: Unsloth doesn't support MPS well yet, but useful for general torch logic
             return "mps"
         return "cpu"
 
     @staticmethod
-    def get_torch_dtype():
+    def get_torch_dtype() -> torch.dtype:
         """Returns the optimal float type for the current hardware."""
         if torch.cuda.is_available():
             if torch.cuda.is_bf16_supported():
@@ -30,16 +39,16 @@ class HardwareManager:
         return torch.float32
 
     @staticmethod
-    def get_memory_stats(device_index=0):
+    def get_memory_stats(device_index: int = 0) -> Dict[str, Union[str, float]]:
         """Returns VRAM usage stats if CUDA is available."""
         if not torch.cuda.is_available():
             return {"status": "cpu_only"}
-        
+
         gpu_stats = torch.cuda.get_device_properties(device_index)
         reserved = torch.cuda.memory_reserved(device_index)
         allocated = torch.cuda.memory_allocated(device_index)
         free = reserved - allocated
-        
+
         return {
             "device": gpu_stats.name,
             "total_gb": round(gpu_stats.total_memory / 1024**3, 2),
@@ -49,26 +58,36 @@ class HardwareManager:
         }
 
     @staticmethod
-    def log_system_report():
+    def log_system_report() -> None:
         """Logs a summary of the environment for debugging."""
         logger.info("--- System Hardware Report ---")
         logger.info(f"OS: {platform.system()} {platform.release()}")
         logger.info(f"Python: {platform.python_version()}")
         logger.info(f"PyTorch: {torch.__version__}")
-        
+
         device = HardwareManager.get_device()
         logger.info(f"Primary Device: {device}")
-        
+
         if device == "cuda":
             stats = HardwareManager.get_memory_stats()
             logger.info(f"GPU: {stats['device']} ({stats['total_gb']} GB)")
         logger.info("------------------------------")
 
     @staticmethod
-    def is_unsloth_compatible():
-        """Checks if the environment meets Unsloth requirements (Linux or MacOS w/ specific setups)."""
-        # Unsloth primarily targets Linux/WSL2 with NVIDIA GPUs
-        if platform.system() == "Windows" and "WSL" not in os.environ.get("WSL_DISTRO_NAME", ""):
-             # Basic windows might work with some specific wheels but typically we want WSL
-             return False
+    def is_unsloth_compatible() -> bool:
+        """
+        Checks if the environment meets Unsloth requirements.
+        Unsloth primarily targets Linux/WSL2 with NVIDIA GPUs.
+        """
+        system = platform.system()
+
+        if system == "Windows":
+            # Check if running under WSL2 (env var exists when inside WSL)
+            if not os.environ.get("WSL_DISTRO_NAME"):
+                logger.warning(
+                    "Native Windows detected. Unsloth works best under WSL2 or Linux. "
+                    "Some features may not be available."
+                )
+                return False
+
         return torch.cuda.is_available()
