@@ -1,7 +1,7 @@
 
 ---
 
-# 🚀 LLM Finetuning — Cross-Platform GPU Pipeline (v0.2.0)
+# 🚀 LLM Finetuning — Cross-Platform GPU Pipeline
 
 **Fast, modular LLM fine-tuning and inference on Windows, Linux, and macOS — fully GPU-accelerated.**
 
