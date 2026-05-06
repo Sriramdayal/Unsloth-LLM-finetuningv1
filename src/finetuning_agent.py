@@ -1,10 +1,11 @@
 import os
 from smolagents import CodeAgent, InferenceClientModel, tool
 
+
 @tool
 def suggest_model(use_case: str, max_vram_gb: float) -> str:
     """Suggests an appropriate open-source model for fine-tuning based on the use case and VRAM.
-    
+
     Args:
         use_case: The primary use case for the model, e.g., 'coding', 'math', 'general', 'medical'.
         max_vram_gb: The maximum available VRAM in gigabytes (e.g., 8, 16, 24, 80).
@@ -25,10 +26,11 @@ def suggest_model(use_case: str, max_vram_gb: float) -> str:
         else:
             return "unsloth/meta-llama-3.3-70b-instruct (with 4-bit) or unsloth/Mistral-Nemo"
 
+
 @tool
 def suggest_finetuning_parameters(model_name: str, target_modules_type: str = "all") -> str:
     """Suggests LoRA and Training parameters for fine-tuning.
-    
+
     Args:
         model_name: The name of the model being fine-tuned.
         target_modules_type: The type of target modules to tune. Can be 'all', 'attention', or 'mlp'. Default is 'all'.
@@ -46,38 +48,41 @@ def suggest_finetuning_parameters(model_name: str, target_modules_type: str = "a
     """
     return params
 
+
 def create_finetuning_agent(hf_token: str = None) -> CodeAgent:
     """Creates a CodeAgent capable of suggesting models, parameters, and writing code for LLM fine-tuning."""
     if hf_token is None:
         hf_token = os.environ.get("HF_TOKEN")
-        
+
     if not hf_token:
-        raise ValueError("A Hugging Face token is required to use the InferenceClientModel. Please set the HF_TOKEN environment variable.")
-        
+        raise ValueError(
+            "A Hugging Face token is required to use the InferenceClientModel. Please set the HF_TOKEN environment variable."
+        )
+
     # Using a capable open-source model via HF inference API
-    model = InferenceClientModel(
-        model_id="Qwen/Qwen2.5-Coder-32B-Instruct",
-        token=hf_token
-    )
-    
+    model = InferenceClientModel(model_id="Qwen/Qwen2.5-Coder-32B-Instruct", token=hf_token)
+
     agent = CodeAgent(
         tools=[suggest_model, suggest_finetuning_parameters],
         model=model,
         additional_authorized_imports=["torch", "transformers", "trl", "peft", "datasets"],
-        description="I am an expert LLM fine-tuning assistant. I can suggest models, configuration parameters, and write Unsloth fine-tuning code."
+        description="I am an expert LLM fine-tuning assistant. I can suggest models, configuration parameters, and write Unsloth fine-tuning code.",
     )
     return agent
+
 
 if __name__ == "__main__":
     print("Welcome to the LLM Fine-tuning Agent powered by smolagents!")
     print("Make sure you have set the HF_TOKEN environment variable.")
-    print("Example Query: 'I have 16GB of VRAM and want to train a coding model. What model and params should I use?'")
-    
+    print(
+        "Example Query: 'I have 16GB of VRAM and want to train a coding model. What model and params should I use?'"
+    )
+
     try:
         agent = create_finetuning_agent()
         while True:
             query = input("\nWhat would you like help with? (type 'exit' to quit): ")
-            if query.lower() in ['exit', 'quit']:
+            if query.lower() in ["exit", "quit"]:
                 break
             try:
                 response = agent.run(query)

@@ -15,7 +15,7 @@ import torch
 from transformers import TrainerCallback
 
 # Ensure src is in python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.config import ModelConfig, TrainConfig
 from src.data import DataProcessor
@@ -26,6 +26,7 @@ from src.core.factory import ModelFactory
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+
 # --- Global State ---
 class AppState:
     model = None
@@ -35,7 +36,9 @@ class AppState:
     is_training = False
     log_history: list[str] = []
 
+
 state = AppState()
+
 
 # --- Custom Callback for Real-Time Logs ---
 class GradioLogCallback(TrainerCallback):
@@ -47,7 +50,9 @@ class GradioLogCallback(TrainerCallback):
             log_str = f"Step {state.global_step}: Loss: {logs.get('loss', 'N/A')}\n"
             self.log_queue.append(log_str)
 
+
 # --- Functions ---
+
 
 def clear_memory():
     """Force garbage collection and clear CUDA cache."""
@@ -63,6 +68,7 @@ def clear_memory():
         torch.cuda.empty_cache()
     gc.collect()
     return "Memory Cleared. Model unloaded."
+
 
 def preview_data(dataset_name: str, num_samples: int):
     """Loads and previews the dataset."""
@@ -82,6 +88,7 @@ def preview_data(dataset_name: str, num_samples: int):
     except Exception as e:
         logger.exception("Failed to preview dataset")
         return pd.DataFrame(), f"Error: {e}"
+
 
 def load_model_and_tokenize(model_name, load_4bit, r, alpha, dataset_name, dataset_style, use_mock):
     """Loads the model and prepares the dataset."""
@@ -177,9 +184,11 @@ def train_wrapper(batch_size, lr, epochs, output_dir, use_mock):
         logger.exception("Training failed")
         return f"Training Failed: {e}"
 
+
 def stream_logs():
     """Generator to stream logs to the UI."""
     return "".join(AppState.log_history)
+
 
 def ai_assistant_chat(message, history):
     """Heuristic AI Assistant to recommend hyperparameters and datasets."""
@@ -196,6 +205,7 @@ def ai_assistant_chat(message, history):
     else:
         response += "I can help you pick the best hyperparameters and datasets! Tell me what kind of data you're training on (e.g., 'coding', 'chatbots', 'agents', or 'medical text')."
     return response
+
 
 # --- UI Setup ---
 custom_theme = gr.themes.Soft(
@@ -222,10 +232,14 @@ custom_css = """
 
 with gr.Blocks(title="Unsloth Fine-Tuning Studio", theme=custom_theme, css=custom_css) as app:
     gr.Markdown("<h1 class='header-title'>🦥 Unsloth Fine-Tuning Studio</h1>")
-    gr.Markdown("<p style='text-align: center; color: gray; margin-bottom: 2rem;'>Interactive, High-Performance LLM Training powered by Unsloth & Gradio</p>")
+    gr.Markdown(
+        "<p style='text-align: center; color: gray; margin-bottom: 2rem;'>Interactive, High-Performance LLM Training powered by Unsloth & Gradio</p>"
+    )
 
     with gr.Row():
-        status_box = gr.Textbox(label="System Status", interactive=False, lines=2, elem_classes="status-box")
+        status_box = gr.Textbox(
+            label="System Status", interactive=False, lines=2, elem_classes="status-box"
+        )
         clear_btn = gr.Button("🗑️ Clear GPU Memory", variant="stop", scale=0)
 
     clear_btn.click(fn=clear_memory, outputs=status_box)
@@ -245,37 +259,69 @@ with gr.Blocks(title="Unsloth Fine-Tuning Studio", theme=custom_theme, css=custo
                         label="Model Preset",
                         allow_custom_value=True,
                         value="unsloth/llama-3-8b-bnb-4bit",
-                        info="Select a pre-quantized Unsloth model or type any HuggingFace ID."
+                        info="Select a pre-quantized Unsloth model or type any HuggingFace ID.",
                     )
-                    
+
                     with gr.Accordion("Advanced Model Settings", open=False):
-                        load_4bit = gr.Checkbox(label="Load in 4-bit (bitsandbytes)", value=True, info="Highly recommended to save VRAM.")
-                        use_mock = gr.Checkbox(label="Mock Mode (CPU Test)", value=False, info="Simulate training without GPU.")
-                        lora_r = gr.Slider(8, 256, step=8, value=16, label="LoRA Rank (r)", info="Higher rank = smarter, but slower and larger.")
-                        lora_alpha = gr.Slider(16, 512, step=16, value=16, label="LoRA Alpha", info="Scaling factor for LoRA weights.")
+                        load_4bit = gr.Checkbox(
+                            label="Load in 4-bit (bitsandbytes)",
+                            value=True,
+                            info="Highly recommended to save VRAM.",
+                        )
+                        use_mock = gr.Checkbox(
+                            label="Mock Mode (CPU Test)",
+                            value=False,
+                            info="Simulate training without GPU.",
+                        )
+                        lora_r = gr.Slider(
+                            8,
+                            256,
+                            step=8,
+                            value=16,
+                            label="LoRA Rank (r)",
+                            info="Higher rank = smarter, but slower and larger.",
+                        )
+                        lora_alpha = gr.Slider(
+                            16,
+                            512,
+                            step=16,
+                            value=16,
+                            label="LoRA Alpha",
+                            info="Scaling factor for LoRA weights.",
+                        )
 
                 with gr.Column(scale=1):
                     gr.Markdown("### 📚 Dataset Configuration")
                     dataset_name = gr.Textbox(
                         label="Hugging Face Dataset ID",
                         value="yahma/alpaca-cleaned",
-                        info="Enter the dataset repository name."
+                        info="Enter the dataset repository name.",
                     )
                     dataset_style = gr.Dropdown(
                         ["auto", "alpaca", "chat", "agent", "movie_recommender"],
                         label="Dataset Style (Prompt Format)",
                         value="auto",
-                        info="Choose 'agent' to format Tool Calling data, or 'chat' for conversations."
+                        info="Choose 'agent' to format Tool Calling data, or 'chat' for conversations.",
                     )
-                    dataset_limit = gr.Number(label="Limit Samples", value=100, info="Number of rows to load for preview/testing.")
-                    
+                    dataset_limit = gr.Number(
+                        label="Limit Samples",
+                        value=100,
+                        info="Number of rows to load for preview/testing.",
+                    )
+
                     with gr.Row():
                         preview_btn = gr.Button("👁️ Preview Raw Data", size="sm")
-                        process_btn = gr.Button("🚀 Load Model & Tokenize", variant="primary", size="sm")
+                        process_btn = gr.Button(
+                            "🚀 Load Model & Tokenize", variant="primary", size="sm"
+                        )
 
             with gr.Accordion("Data Previews", open=True):
-                raw_preview = gr.Dataframe(label="Raw Data Preview", headers=["Column 1", "Column 2"], max_height=200)
-                formatted_preview = gr.Dataframe(label="Formatted Data Preview (Tokenized Text)", max_height=200)
+                raw_preview = gr.Dataframe(
+                    label="Raw Data Preview", headers=["Column 1", "Column 2"], max_height=200
+                )
+                formatted_preview = gr.Dataframe(
+                    label="Formatted Data Preview (Tokenized Text)", max_height=200
+                )
 
             # Wiring up the buttons
             preview_btn.click(
@@ -285,7 +331,15 @@ with gr.Blocks(title="Unsloth Fine-Tuning Studio", theme=custom_theme, css=custo
             )
             process_btn.click(
                 load_model_and_tokenize,
-                inputs=[model_name, load_4bit, lora_r, lora_alpha, dataset_name, dataset_style, use_mock],
+                inputs=[
+                    model_name,
+                    load_4bit,
+                    lora_r,
+                    lora_alpha,
+                    dataset_name,
+                    dataset_style,
+                    use_mock,
+                ],
                 outputs=[status_box, formatted_preview],
             )
 
@@ -294,21 +348,46 @@ with gr.Blocks(title="Unsloth Fine-Tuning Studio", theme=custom_theme, css=custo
             gr.Markdown("### 🎛️ Training Hyperparameters")
             with gr.Row():
                 with gr.Column():
-                    batch_size = gr.Slider(1, 32, step=1, label="Batch Size", value=2, info="Samples per device. Reduce if Out-of-Memory.")
-                    lr = gr.Number(label="Learning Rate", value=2e-4, info="Step size for optimizer.")
+                    batch_size = gr.Slider(
+                        1,
+                        32,
+                        step=1,
+                        label="Batch Size",
+                        value=2,
+                        info="Samples per device. Reduce if Out-of-Memory.",
+                    )
+                    lr = gr.Number(
+                        label="Learning Rate", value=2e-4, info="Step size for optimizer."
+                    )
                 with gr.Column():
-                    epochs = gr.Slider(0.1, 10, step=0.1, label="Epochs", value=1.0, info="Number of full passes over dataset.")
-                    output_dir = gr.Textbox(label="Output Directory", value="outputs", info="Folder to save final checkpoints.")
+                    epochs = gr.Slider(
+                        0.1,
+                        10,
+                        step=0.1,
+                        label="Epochs",
+                        value=1.0,
+                        info="Number of full passes over dataset.",
+                    )
+                    output_dir = gr.Textbox(
+                        label="Output Directory",
+                        value="outputs",
+                        info="Folder to save final checkpoints.",
+                    )
 
         # Tab 3: Run & Monitor
         with gr.TabItem("📈 3. Train & Monitor"):
             gr.Markdown("### 🚀 Launch Training")
             with gr.Row():
                 start_train_btn = gr.Button("🔥 Start Training Process", variant="primary", scale=2)
-                
+
             with gr.Row():
-                logs_output = gr.Textbox(label="Live Training Logs (Auto-updating)", lines=15, max_lines=20, elem_classes="console-log")
-                
+                logs_output = gr.Textbox(
+                    label="Live Training Logs (Auto-updating)",
+                    lines=15,
+                    max_lines=20,
+                    elem_classes="console-log",
+                )
+
             result_box = gr.Textbox(label="Final Status / Results", lines=2)
 
             # Polling for logs
@@ -324,11 +403,17 @@ with gr.Blocks(title="Unsloth Fine-Tuning Studio", theme=custom_theme, css=custo
         # Tab 4: AI Assistant
         with gr.TabItem("🤖 4. AI Tuning Agent"):
             gr.Markdown("### 💬 Ask the AI for Fine-Tuning Advice")
-            gr.Markdown("Not sure what LoRA Rank, dataset, or learning rate to use? Ask the AI Tuning Agent!")
+            gr.Markdown(
+                "Not sure what LoRA Rank, dataset, or learning rate to use? Ask the AI Tuning Agent!"
+            )
             gr.ChatInterface(
                 fn=ai_assistant_chat,
                 chatbot=gr.Chatbot(height=400, elem_classes="status-box"),
-                examples=["I want to train a coding model", "What settings for a medical assistant?", "How to train an AI agent with tool calling?"]
+                examples=[
+                    "I want to train a coding model",
+                    "What settings for a medical assistant?",
+                    "How to train an AI agent with tool calling?",
+                ],
             )
 
 

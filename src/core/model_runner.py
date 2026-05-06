@@ -49,6 +49,7 @@ _LLAMA_N_GPU_LAYERS = int(os.environ.get("LLAMA_N_GPU_LAYERS", "-1"))
 # GGUF / llama-cpp-python loader
 # ---------------------------------------------------------------------------
 
+
 def _is_gguf(path: str) -> bool:
     """Return True when path ends with .gguf."""
     return path.strip().lower().endswith(".gguf")
@@ -63,8 +64,8 @@ def _llama_n_gpu_layers() -> int:
         return _LLAMA_N_GPU_LAYERS
     # Auto-detect: use GPU if any accelerator is available
     if _has_cuda() or _has_mps():
-        return -1   # all layers on GPU
-    return 0        # CPU only
+        return -1  # all layers on GPU
+    return 0  # CPU only
 
 
 def _load_llama_cpp(model_path: str, n_ctx: int = 4096):
@@ -82,15 +83,14 @@ def _load_llama_cpp(model_path: str, n_ctx: int = 4096):
     """
     # Bootstrap platform-specific native library paths before importing llama_cpp
     from ..utils.llama_loader import bootstrap_platform_dlls
+
     bootstrap_platform_dlls()
 
     try:
         from llama_cpp import Llama
     except ImportError as exc:
         _install_hint = _llama_cpp_install_hint()
-        raise ImportError(
-            f"llama-cpp-python is not installed.\n{_install_hint}"
-        ) from exc
+        raise ImportError(f"llama-cpp-python is not installed.\n{_install_hint}") from exc
 
     n_gpu = _llama_n_gpu_layers()
     accel = _infer_llama_backend()
@@ -147,6 +147,7 @@ def _llama_cpp_install_hint() -> str:
 # ModelRunner
 # ---------------------------------------------------------------------------
 
+
 class ModelRunner:
     """
     High-level cross-platform API for model loading, generation, and training.
@@ -160,7 +161,7 @@ class ModelRunner:
         self.config = config
         self.model = None
         self.tokenizer = None
-        self._backend: str = "hf"       # "gguf" | "hf"
+        self._backend: str = "hf"  # "gguf" | "hf"
         self.is_training_ready: bool = False
 
     # ------------------------------------------------------------------
@@ -185,8 +186,8 @@ class ModelRunner:
         self.is_training_ready = True
 
         plat_label = {
-            "linux":  "Linux (Unsloth)" if (_has_cuda() and _has_unsloth()) else "Linux (PEFT)",
-            "win32":  "Windows (PEFT/QLoRA)",
+            "linux": "Linux (Unsloth)" if (_has_cuda() and _has_unsloth()) else "Linux (PEFT)",
+            "win32": "Windows (PEFT/QLoRA)",
             "darwin": "macOS (MPS/CPU)",
         }.get(_platform(), _platform())
 
@@ -219,6 +220,7 @@ class ModelRunner:
 
             if adapter_path:
                 from peft import PeftModel
+
                 logger.info(f"Loading LoRA adapter from: {adapter_path}")
                 self.model = PeftModel.from_pretrained(self.model, adapter_path)
 
@@ -290,13 +292,14 @@ class ModelRunner:
         )
 
         # Return only the newly generated tokens (strip the prompt)
-        generated = outputs[0][inputs.shape[-1]:]
+        generated = outputs[0][inputs.shape[-1] :]
         return self.tokenizer.decode(generated, skip_special_tokens=True)
 
 
 # ---------------------------------------------------------------------------
 # Internal label helper
 # ---------------------------------------------------------------------------
+
 
 def _best_accel_label() -> str:
     if _has_cuda():

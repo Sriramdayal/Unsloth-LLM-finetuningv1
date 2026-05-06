@@ -59,34 +59,42 @@ class HardwareManager:
 
         if device == "cuda":
             gpu_stats = torch.cuda.get_device_properties(device_index)
-            reserved  = torch.cuda.memory_reserved(device_index)
+            reserved = torch.cuda.memory_reserved(device_index)
             allocated = torch.cuda.memory_allocated(device_index)
             return {
-                "device":       gpu_stats.name,
-                "total_gb":     round(gpu_stats.total_memory / 1024**3, 2),
-                "reserved_gb":  round(reserved  / 1024**3, 2),
+                "device": gpu_stats.name,
+                "total_gb": round(gpu_stats.total_memory / 1024**3, 2),
+                "reserved_gb": round(reserved / 1024**3, 2),
                 "allocated_gb": round(allocated / 1024**3, 2),
-                "free_gb":      round((reserved - allocated) / 1024**3, 2),
+                "free_gb": round((reserved - allocated) / 1024**3, 2),
             }
 
         if device == "mps":
             # MPS uses unified memory shared with CPU — report system RAM as proxy
             try:
                 import subprocess, json
+
                 result = subprocess.run(
                     ["system_profiler", "SPHardwareDataType", "-json"],
-                    capture_output=True, text=True, timeout=5,
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
                 )
                 data = json.loads(result.stdout)
-                ram_bytes = int(
-                    data["SPHardwareDataType"][0].get("physical_memory", "0 GB")
-                    .replace(" GB", "").strip()
-                ) * 1024**3
+                ram_bytes = (
+                    int(
+                        data["SPHardwareDataType"][0]
+                        .get("physical_memory", "0 GB")
+                        .replace(" GB", "")
+                        .strip()
+                    )
+                    * 1024**3
+                )
                 return {
-                    "device":        "Apple Silicon MPS",
-                    "total_gb":      round(ram_bytes / 1024**3, 2),
+                    "device": "Apple Silicon MPS",
+                    "total_gb": round(ram_bytes / 1024**3, 2),
                     "unified_memory": True,
-                    "note":          "MPS uses unified memory shared with CPU",
+                    "note": "MPS uses unified memory shared with CPU",
                 }
             except Exception:
                 return {"device": "Apple Silicon MPS", "unified_memory": True}
@@ -123,19 +131,20 @@ class HardwareManager:
         """
         Returns a human-readable label describing the active training/inference stack.
         """
-        device  = HardwareManager.get_device()
+        device = HardwareManager.get_device()
         os_name = sys.platform
 
         if device == "cuda":
             try:
                 import importlib.util
+
                 if importlib.util.find_spec("unsloth") and os_name == "linux":
                     return "Linux + CUDA + Unsloth (Triton kernels)"
             except Exception:
                 pass
             label = {
-                "win32":  "Windows + CUDA (bitsandbytes QLoRA + llama.cpp CUBLAS)",
-                "linux":  "Linux + CUDA (bitsandbytes QLoRA + llama.cpp CUDA)",
+                "win32": "Windows + CUDA (bitsandbytes QLoRA + llama.cpp CUBLAS)",
+                "linux": "Linux + CUDA (bitsandbytes QLoRA + llama.cpp CUDA)",
             }.get(os_name, f"{os_name} + CUDA")
             return label
 

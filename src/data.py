@@ -49,10 +49,10 @@ class DataProcessor:
         """Loads dataset from HF or local path with error handling."""
         try:
             self.raw_dataset = load_dataset(
-                self.train_config.dataset_name, 
-                split=split, 
+                self.train_config.dataset_name,
+                split=split,
                 trust_remote_code=True,
-                num_proc=self._get_num_proc()
+                num_proc=self._get_num_proc(),
             )
             n = self.train_config.dataset_num_samples
             if n and n < len(self.raw_dataset):
@@ -97,9 +97,7 @@ class DataProcessor:
         return mapping
 
     @staticmethod
-    def _match_column(
-        cols: List[str], candidates: tuple, optional: bool = False
-    ) -> Optional[str]:
+    def _match_column(cols: List[str], candidates: tuple, optional: bool = False) -> Optional[str]:
         """Match a column name from a list of candidates."""
         for c in candidates:
             if c in cols:
@@ -176,9 +174,13 @@ class DataProcessor:
 
         def chat_format(examples):
             convos = examples[chat_col]
-            return {"text": [tokenizer.apply_chat_template(c, tokenize=False) + eos for c in convos]}
+            return {
+                "text": [tokenizer.apply_chat_template(c, tokenize=False) + eos for c in convos]
+            }
 
-        self.formatted_dataset = self.raw_dataset.map(chat_format, batched=True, num_proc=self._get_num_proc())
+        self.formatted_dataset = self.raw_dataset.map(
+            chat_format, batched=True, num_proc=self._get_num_proc()
+        )
         return self.formatted_dataset
 
     def _apply_alpaca_format(self, mapping: Dict[str, str]) -> Dataset:
@@ -210,7 +212,9 @@ class DataProcessor:
                 texts.append(txt + eos)
             return {"text": texts}
 
-        self.formatted_dataset = self.raw_dataset.map(alpaca_format, batched=True, num_proc=self._get_num_proc())
+        self.formatted_dataset = self.raw_dataset.map(
+            alpaca_format, batched=True, num_proc=self._get_num_proc()
+        )
         return self.formatted_dataset
 
     @staticmethod
@@ -229,18 +233,26 @@ class DataProcessor:
             texts = []
             # Calculate length dynamically based on any available key
             keys = list(examples.keys())
-            if not keys: return {"text": []}
+            if not keys:
+                return {"text": []}
             n_items = len(examples[keys[0]])
-            
+
             for i in range(n_items):
+
                 def get_val(key, default=""):
                     return examples.get(key, [default] * n_items)[i] or default
-                
+
                 genres_raw = get_val("genres", "[]")
                 keywords_raw = get_val("keywords", "[]")
-                genres = ", ".join(self._safe_parse(genres_raw if isinstance(genres_raw, str) else str(genres_raw)))
-                keywords = ", ".join(self._safe_parse(keywords_raw if isinstance(keywords_raw, str) else str(keywords_raw)))
-                
+                genres = ", ".join(
+                    self._safe_parse(genres_raw if isinstance(genres_raw, str) else str(genres_raw))
+                )
+                keywords = ", ".join(
+                    self._safe_parse(
+                        keywords_raw if isinstance(keywords_raw, str) else str(keywords_raw)
+                    )
+                )
+
                 overview = get_val("overview", "No overview available.")
                 tagline = get_val("tagline", "")
                 title = get_val("title", "Unknown")
@@ -270,5 +282,7 @@ Here's why you might enjoy this movie:
 """ + eos)
             return {"text": texts}
 
-        self.formatted_dataset = self.raw_dataset.map(format_row, batched=True, num_proc=self._get_num_proc())
+        self.formatted_dataset = self.raw_dataset.map(
+            format_row, batched=True, num_proc=self._get_num_proc()
+        )
         return self.formatted_dataset
