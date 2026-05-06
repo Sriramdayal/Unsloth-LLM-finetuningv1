@@ -1,4 +1,5 @@
 import os
+
 from smolagents import CodeAgent, InferenceClientModel, tool
 
 

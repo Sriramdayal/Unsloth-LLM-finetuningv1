@@ -72,7 +72,8 @@ class HardwareManager:
         if device == "mps":
             # MPS uses unified memory shared with CPU — report system RAM as proxy
             try:
-                import subprocess, json
+                import json
+                import subprocess
 
                 result = subprocess.run(
                     ["system_profiler", "SPHardwareDataType", "-json"],

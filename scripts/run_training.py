@@ -3,7 +3,7 @@ Standalone training script example.
 Demonstrates programmatic usage of the unsloth-finetuning library.
 """
 
-from src import ModelConfig, TrainConfig, DataProcessor, ModelRunner, train_model
+from src import DataProcessor, ModelConfig, ModelRunner, TrainConfig, train_model
 
 
 def main():

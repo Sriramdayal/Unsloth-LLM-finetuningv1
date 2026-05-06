@@ -13,9 +13,9 @@ import sys
 from transformers import HfArgumentParser
 
 from .config import ModelConfig, TrainConfig
+from .core.factory import ModelFactory
 from .data import DataProcessor
 from .train import train_model
-from .core.factory import ModelFactory
 from .utils.env import HardwareManager
 
 # Setup Logging

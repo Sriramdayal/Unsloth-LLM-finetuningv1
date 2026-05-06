@@ -2,8 +2,8 @@
 Smoke test: Validates that all core package imports work correctly.
 """
 
-import sys
 import os
+import sys
 
 # Fix Windows console encoding
 if sys.platform == "win32":

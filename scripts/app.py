@@ -3,10 +3,10 @@
 State-Aware GUI for interactive fine-tuning.
 """
 
-import os
-import sys
 import gc
 import logging
+import os
+import sys
 import threading
 
 import gradio as gr
@@ -18,9 +18,9 @@ from transformers import TrainerCallback
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.config import ModelConfig, TrainConfig
+from src.core.factory import ModelFactory
 from src.data import DataProcessor
 from src.train import train_model
-from src.core.factory import ModelFactory
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")

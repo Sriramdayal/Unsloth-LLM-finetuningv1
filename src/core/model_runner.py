@@ -36,8 +36,8 @@ from typing import Optional
 
 import torch
 
-from .factory import ModelFactory, _has_cuda, _has_mps, _has_unsloth, _platform
 from ..config import ModelConfig
+from .factory import ModelFactory, _has_cuda, _has_mps, _has_unsloth, _platform
 
 logger = logging.getLogger(__name__)
 

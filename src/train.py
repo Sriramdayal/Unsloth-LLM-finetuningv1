@@ -11,8 +11,8 @@ import os
 from typing import Any, Dict, List, Optional, Tuple
 
 import torch
-from trl import SFTTrainer
 from transformers import TrainingArguments
+from trl import SFTTrainer
 
 try:
     from .config import ModelConfig, TrainConfig
