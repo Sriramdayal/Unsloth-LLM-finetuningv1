@@ -48,7 +48,7 @@ A **professional enterprise pipeline** for fine-tuning and running open-source L
 | 🏋️ **GPU training** | Unsloth Triton (Linux) · bitsandbytes 4-bit QLoRA (Windows/Linux) · MPS (macOS) |
 | 🔄 **Dual inference backends** | Auto-selects: `.gguf` → llama.cpp · HF repo/dir → transformers |
 | 🤖 **Auto backend selection** | Platform detected at runtime — no config needed |
-| 🧠 **Multi-Agent System** | `smolagents` powered AI assistant for model/param selection & coding |
+| 🧠 **Multi-Agent System (Beta)** | `smolagents` powered AI assistant for model/param selection & coding |
 | 🏗️ **Modular architecture** | Clean separation: `ModelFactory` · `ModelRunner` · `DataProcessor` |
 | 🖥️ **Interactive GUI** | Gradio-based no-code fine-tuning studio |
 | 🛠️ **Robust CLI** | Unified entry point for training and inference |
@@ -212,7 +212,7 @@ uv run unsloth-cli infer \
 
 ---
 
-### 🤖 Multi-Agent Fine-Tuning Assistant
+### 🤖 Multi-Agent Fine-Tuning Assistant (Beta)
 
 The pipeline includes an intelligent multi-agent system powered by Hugging Face's `smolagents` framework. The agent can suggest the best models for your use case, recommend optimal LoRA parameters, and write training code!
 
