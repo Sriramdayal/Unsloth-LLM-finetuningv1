@@ -111,21 +111,21 @@ gpu = [
 
 # Legacy Linux/Unsloth full install
 all = [
-    "unsloth-finetuning[dev,gui,gpu,linux]",
+    "unsloth-finetuning-sriram[dev,gui,gpu,linux]",
 ]
 
 # Platform meta-extras
 all-windows = [
-    "unsloth-finetuning[dev,gui,windows]",
+    "unsloth-finetuning-sriram[dev,gui,windows]",
 ]
 all-linux = [
-    "unsloth-finetuning[dev,gui,linux]",
+    "unsloth-finetuning-sriram[dev,gui,linux]",
 ]
 all-macos = [
-    "unsloth-finetuning[dev,gui,macos]",
+    "unsloth-finetuning-sriram[dev,gui,macos]",
 ]
 all-cpu = [
-    "unsloth-finetuning[dev,gui,cpu]",
+    "unsloth-finetuning-sriram[dev,gui,cpu]",
 ]
 
 [project.urls]
