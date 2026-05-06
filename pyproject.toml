@@ -3,8 +3,8 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "unsloth-finetuning"
-version = "0.2.0"
+name = "unsloth-finetuning-sriram"
+version = "0.2.1"
 description = "Professional Enterprise Pipeline for Unsloth LLM Finetuning with LoRA, TRL, and modular architecture"
 readme = "README.md"
 requires-python = ">=3.10,<3.13"
