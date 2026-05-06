@@ -11,8 +11,8 @@ import os
 from typing import Any, Dict, List, Optional, Tuple
 
 import torch
-from transformers import TrainingArguments
-from trl import SFTTrainer
+from transformers import TrainingArguments  # Kept for fallback if needed
+from trl import SFTConfig, SFTTrainer
 
 try:
     from .config import ModelConfig, TrainConfig
@@ -54,7 +54,10 @@ def train_model(
     use_cuda = torch.cuda.is_available()
     use_bf16 = use_cuda and torch.cuda.is_bf16_supported()
 
-    training_args = TrainingArguments(
+    dataset_num_proc = getattr(train_config, "dataset_num_proc", -1)
+    dataset_num_proc = dataset_num_proc if dataset_num_proc > 0 else (os.cpu_count() or 1)
+
+    training_args = SFTConfig(
         per_device_train_batch_size=train_config.batch_size,
         gradient_accumulation_steps=train_config.gradient_accumulation_steps,
         warmup_steps=5,
@@ -73,23 +76,21 @@ def train_model(
         gradient_checkpointing=True,
         dataloader_num_workers=getattr(train_config, "dataloader_num_workers", 0),
         dataloader_pin_memory=use_cuda,
+        dataset_text_field="text",
+        max_seq_length=model_config.max_seq_length,
+        packing=getattr(train_config, "packing", False),
+        dataset_num_proc=dataset_num_proc,
     )
 
     # 4. Trainer Configuration
     logger.info("Initializing SFTTrainer...")
-    dataset_num_proc = getattr(train_config, "dataset_num_proc", -1)
-    dataset_num_proc = dataset_num_proc if dataset_num_proc > 0 else (os.cpu_count() or 1)
 
     trainer = SFTTrainer(
         model=model,
         tokenizer=tokenizer,
         train_dataset=dataset,
-        dataset_text_field="text",
-        max_seq_length=model_config.max_seq_length,
         args=training_args,
         callbacks=callbacks,
-        packing=getattr(train_config, "packing", False),
-        dataset_num_proc=dataset_num_proc,
     )
 
     # 5. Execution

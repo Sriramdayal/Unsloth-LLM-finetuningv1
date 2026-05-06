@@ -91,6 +91,8 @@ class DataProcessor:
                 "Auto-detection failed for standard keys. "
                 f"Available columns: {cols}. Using positional 0:instruction, 1:output."
             )
+            if not cols:
+                raise ValueError("Dataset has no columns to map.")
             mapping["instruction"] = cols[0]
             mapping["output"] = cols[1] if len(cols) > 1 else None
 
@@ -114,8 +116,10 @@ class DataProcessor:
         # 1. Force Alpaca if requested
         if style == "alpaca":
             logger.info("Forcing Alpaca-style formatting.")
-            if "instruction" not in mapping:
+            if "instruction" not in mapping or not mapping["instruction"]:
                 cols = self.raw_dataset.column_names
+                if not cols:
+                    raise ValueError("Dataset has no columns to map for Alpaca format.")
                 mapping["instruction"] = cols[0]
                 mapping["output"] = cols[1] if len(cols) > 1 else None
                 mapping["input"] = cols[2] if len(cols) > 2 else None

@@ -64,7 +64,7 @@ def _has_unsloth() -> bool:
         import importlib.util
 
         return importlib.util.find_spec("unsloth") is not None
-    except Exception:
+    except ImportError:
         return False
 
 
