@@ -1,28 +1,39 @@
-import unsloth
-from unsloth import FastLanguageModel
+"""
+CLI entry point for the Unsloth LLM Orchestrator.
+Supports 'train' and 'infer' subcommands.
+"""
+
+from __future__ import annotations
+
+import argparse
+import logging
 import os
 import sys
-import logging
-import argparse
+
 from transformers import HfArgumentParser
 
 from .config import ModelConfig, TrainConfig
+from .core.factory import ModelFactory
 from .data import DataProcessor
 from .train import train_model
-from .core.factory import ModelFactory
 from .utils.env import HardwareManager
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+
 def run_training(args):
     """Subcommand for training."""
     parser = HfArgumentParser((ModelConfig, TrainConfig))
-    
+
     # Load from config file or CLI
     if args.config:
-        model_cfg, train_cfg = parser.parse_json_file(json_file=os.path.abspath(args.config))
+        config_path = os.path.abspath(args.config)
+        if config_path.endswith('.yaml') or config_path.endswith('.yml'):
+            model_cfg, train_cfg = parser.parse_yaml_file(yaml_file=config_path)
+        else:
+            model_cfg, train_cfg = parser.parse_json_file(json_file=config_path)
     else:
         model_cfg, train_cfg = parser.parse_args_into_dataclasses(args.unknown)
 
@@ -32,7 +43,7 @@ def run_training(args):
     # 2. Logic: Mock vs Real
     if model_cfg.use_mock:
         logger.info("[MOCK] Running in simulation mode.")
-        tokenizer = None # Processor will load dummy if needed
+        tokenizer = None
         model = None
     else:
         model, tokenizer = ModelFactory.create_model_and_tokenizer(model_cfg)
@@ -51,6 +62,20 @@ def run_training(args):
     train_model(model, tokenizer, dataset, train_cfg, model_cfg)
     logger.info("Process finished successfully.")
 
+
+def run_inference(args):
+    """Subcommand for inference."""
+    from .core.model_runner import ModelRunner
+
+    config = ModelConfig(model_name_or_path=args.model)
+    runner = ModelRunner(config)
+    runner.setup_for_inference()
+
+    response = runner.generate(args.prompt)
+    print(f"\nPrompt: {args.prompt}")
+    print(f"Response: {response}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Unsloth LLM Orchestrator")
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
@@ -58,11 +83,11 @@ def main():
     # Train Command
     train_parser = subparsers.add_parser("train", help="Start fine-tuning")
     train_parser.add_argument("--config", type=str, help="Path to YAML/JSON config file")
-    
-    # Infer Command (Placeholder for future expansion)
-    infer_parser = subparsers.add_parser("infer", help="Run inference (experimental)")
-    infer_parser.add_argument("--model", type=str, required=True)
-    infer_parser.add_argument("--prompt", type=str, required=True)
+
+    # Infer Command
+    infer_parser = subparsers.add_parser("infer", help="Run inference")
+    infer_parser.add_argument("--model", type=str, required=True, help="Model path or HF ID")
+    infer_parser.add_argument("--prompt", type=str, required=True, help="Prompt text")
 
     args, unknown = parser.parse_known_args()
     args.unknown = unknown
@@ -70,9 +95,10 @@ def main():
     if args.command == "train":
         run_training(args)
     elif args.command == "infer":
-        logger.info("Inference subcommand coming soon.")
+        run_inference(args)
     else:
         parser.print_help()
+
 
 if __name__ == "__main__":
     main()

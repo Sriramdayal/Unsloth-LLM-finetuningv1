@@ -29,10 +29,12 @@ logger = logging.getLogger(__name__)
 # Windows helpers
 # ---------------------------------------------------------------------------
 
+
 def _find_torch_cuda_lib() -> str | None:
     """Return the path to PyTorch's bundled CUDA lib directory (Windows)."""
     try:
         import torch
+
         candidate = os.path.join(os.path.dirname(torch.__file__), "lib")
         cudart = os.path.join(candidate, "cudart64_12.dll")
         if os.path.exists(cudart):
@@ -55,6 +57,7 @@ def _find_llama_lib_dir() -> str | None:
     """Return the llama_cpp lib directory (contains llama.dll / ggml-cuda.dll)."""
     try:
         import importlib.util
+
         spec = importlib.util.find_spec("llama_cpp")
         if spec and spec.origin:
             lib_dir = os.path.join(os.path.dirname(spec.origin), "lib")
@@ -106,6 +109,7 @@ def _bootstrap_windows() -> None:
 # macOS helpers
 # ---------------------------------------------------------------------------
 
+
 def _check_metal_available() -> None:
     """
     Log Metal GPU availability on macOS.
@@ -113,9 +117,12 @@ def _check_metal_available() -> None:
     """
     try:
         import subprocess
+
         result = subprocess.run(
             ["system_profiler", "SPDisplaysDataType"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if "Metal" in result.stdout or "Apple" in result.stdout:
             logger.debug("[llama_loader] macOS Metal GPU detected — llama.cpp will use Metal.")
@@ -129,6 +136,7 @@ def _check_metal_available() -> None:
 # Linux helpers
 # ---------------------------------------------------------------------------
 
+
 def _check_linux_cuda() -> None:
     """
     Log CUDA availability on Linux.
@@ -136,6 +144,7 @@ def _check_linux_cuda() -> None:
     """
     try:
         import torch
+
         if torch.cuda.is_available():
             logger.debug(
                 f"[llama_loader] Linux CUDA detected: {torch.cuda.get_device_name(0)}. "
@@ -150,6 +159,7 @@ def _check_linux_cuda() -> None:
 # ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
+
 
 def bootstrap_platform_dlls() -> None:
     """

@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 # Platform detection helpers
 # ---------------------------------------------------------------------------
 
+
 def _platform() -> str:
     """Return normalized platform string: 'linux' | 'windows' | 'darwin'."""
     return sys.platform  # 'linux', 'win32', 'darwin'
@@ -61,8 +62,9 @@ def _has_unsloth() -> bool:
     """Return True if unsloth is installed (Linux / WSL2 only)."""
     try:
         import importlib.util
+
         return importlib.util.find_spec("unsloth") is not None
-    except Exception:
+    except ImportError:
         return False
 
 
@@ -79,7 +81,7 @@ def _compute_dtype() -> torch.dtype:
     if _has_cuda():
         return torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
     if _has_mps():
-        return torch.float16   # MPS supports float16; bfloat16 support is partial
+        return torch.float16  # MPS supports float16; bfloat16 support is partial
     return torch.float32
 
 
@@ -87,14 +89,16 @@ def _compute_dtype() -> torch.dtype:
 # Backend-specific helpers
 # ---------------------------------------------------------------------------
 
+
 def _bnb_config_4bit():
     """Build BitsAndBytesConfig for 4-bit NF4 QLoRA (CUDA only)."""
     from transformers import BitsAndBytesConfig
+
     return BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
         bnb_4bit_compute_dtype=_compute_dtype(),
-        bnb_4bit_use_double_quant=True,   # Nested quantisation saves ~0.4 GB
+        bnb_4bit_use_double_quant=True,  # Nested quantisation saves ~0.4 GB
     )
 
 
@@ -109,7 +113,7 @@ def _load_with_unsloth(config: ModelConfig) -> Tuple:
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=config.model_name_or_path,
         max_seq_length=config.max_seq_length,
-        dtype=None,              # Auto-detect (bfloat16 on Ampere+)
+        dtype=None,  # Auto-detect (bfloat16 on Ampere+)
         load_in_4bit=config.load_in_4bit,
         device_map="auto",
     )
@@ -165,9 +169,9 @@ def _load_with_transformers(config: ModelConfig) -> Tuple:
             "Falling back to full precision."
         )
 
-    bnb_cfg   = _bnb_config_4bit() if use_4bit else None
+    bnb_cfg = _bnb_config_4bit() if use_4bit else None
     # When using bitsandbytes, dtype is managed internally
-    dtype     = None if use_4bit else _compute_dtype()
+    dtype = None if use_4bit else _compute_dtype()
     # device_map="auto" handles CPU/CUDA/MPS distribution
     device_map = "auto" if device != "mps" else {"": "mps"}
 
@@ -178,13 +182,15 @@ def _load_with_transformers(config: ModelConfig) -> Tuple:
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    model = AutoModelForCausalLM.from_pretrained(
-        config.model_name_or_path,
-        quantization_config=bnb_cfg,
-        torch_dtype=dtype,
-        device_map=device_map,
-        trust_remote_code=True,
-    )
+    kwargs = {
+        "torch_dtype": dtype,
+        "device_map": device_map,
+        "trust_remote_code": True,
+    }
+    if bnb_cfg is not None:
+        kwargs["quantization_config"] = bnb_cfg
+
+    model = AutoModelForCausalLM.from_pretrained(config.model_name_or_path, **kwargs)
 
     logger.info("Factory [HF]: Model + tokenizer loaded successfully.")
     return model, tokenizer
@@ -224,6 +230,7 @@ def _apply_lora_peft(model, config: ModelConfig):
 # ---------------------------------------------------------------------------
 # Public Factory
 # ---------------------------------------------------------------------------
+
 
 class ModelFactory:
     """
@@ -301,6 +308,7 @@ class ModelFactory:
         if _platform() == "linux" and _has_cuda() and _has_unsloth():
             try:
                 from unsloth import FastLanguageModel  # type: ignore[import]
+
                 FastLanguageModel.for_inference(model)
                 logger.info("Factory [Unsloth]: Switched to fast inference mode.")
             except Exception:
