@@ -31,3 +31,6 @@ wandb/
 dist/
 build/
 *.egg-info/
+
+# uv
+uv.lock

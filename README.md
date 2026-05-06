@@ -211,6 +211,24 @@ uv run unsloth-cli infer \
 
 ---
 
+### 🤖 Multi-Agent Fine-Tuning Assistant
+
+The pipeline includes an intelligent multi-agent system powered by Hugging Face's `smolagents` framework. The agent can suggest the best models for your use case, recommend optimal LoRA parameters, and write training code!
+
+1. Set your Hugging Face Token:
+   ```bash
+   # Windows
+   $env:HF_TOKEN="your_hf_token_here"
+   # Linux / macOS
+   export HF_TOKEN="your_hf_token_here"
+   ```
+2. Run the agent:
+   ```bash
+   uv run python src/finetuning_agent.py
+   ```
+
+---
+
 ### 🎨 GUI — Fine-Tuning Studio
 
 ```bash

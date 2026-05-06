@@ -9,3 +9,4 @@ gradio
 pandas
 huggingface_hub
 pyyaml
+smolagents

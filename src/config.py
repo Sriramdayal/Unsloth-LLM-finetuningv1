@@ -100,3 +100,15 @@ class TrainConfig:
         default=False,
         metadata={"help": "If True, exits after data processing without training."}
     )
+    dataset_num_proc: int = field(
+        default=-1,
+        metadata={"help": "Number of processes for dataset mapping/loading. -1 for auto (cpu count)."}
+    )
+    packing: bool = field(
+        default=False,
+        metadata={"help": "Enable packing of multiple sequences into a single max_seq_length block to speed up training."}
+    )
+    dataloader_num_workers: int = field(
+        default=0,
+        metadata={"help": "Number of dataloader workers for training. Set > 0 to speed up data loading."}
+    )

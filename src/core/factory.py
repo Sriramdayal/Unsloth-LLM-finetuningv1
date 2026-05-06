@@ -178,12 +178,17 @@ def _load_with_transformers(config: ModelConfig) -> Tuple:
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
+    kwargs = {
+        "torch_dtype": dtype,
+        "device_map": device_map,
+        "trust_remote_code": True,
+    }
+    if bnb_cfg is not None:
+        kwargs["quantization_config"] = bnb_cfg
+
     model = AutoModelForCausalLM.from_pretrained(
         config.model_name_or_path,
-        quantization_config=bnb_cfg,
-        torch_dtype=dtype,
-        device_map=device_map,
-        trust_remote_code=True,
+        **kwargs
     )
 
     logger.info("Factory [HF]: Model + tokenizer loaded successfully.")
