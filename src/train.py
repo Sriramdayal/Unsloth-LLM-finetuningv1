@@ -77,7 +77,7 @@ def train_model(
         dataloader_num_workers=getattr(train_config, "dataloader_num_workers", 0),
         dataloader_pin_memory=use_cuda,
         dataset_text_field="text",
-        max_seq_length=model_config.max_seq_length,
+        max_length=model_config.max_seq_length,
         packing=getattr(train_config, "packing", False),
         dataset_num_proc=dataset_num_proc,
     )
@@ -87,7 +87,7 @@ def train_model(
 
     trainer = SFTTrainer(
         model=model,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         train_dataset=dataset,
         args=training_args,
         callbacks=callbacks,

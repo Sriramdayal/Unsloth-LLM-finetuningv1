@@ -29,7 +29,11 @@ def run_training(args):
 
     # Load from config file or CLI
     if args.config:
-        model_cfg, train_cfg = parser.parse_json_file(json_file=os.path.abspath(args.config))
+        config_path = os.path.abspath(args.config)
+        if config_path.endswith('.yaml') or config_path.endswith('.yml'):
+            model_cfg, train_cfg = parser.parse_yaml_file(yaml_file=config_path)
+        else:
+            model_cfg, train_cfg = parser.parse_json_file(json_file=config_path)
     else:
         model_cfg, train_cfg = parser.parse_args_into_dataclasses(args.unknown)
 
