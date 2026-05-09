@@ -6,7 +6,7 @@
 **Fast, modular LLM fine-tuning and inference on Windows, Linux, and macOS — fully GPU-accelerated.**
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/6c834e71-ad14-40b0-a26f-27783752c07f" width="100%" />
+  <img width="1000" height="600" alt="image" src="https://github.com/user-attachments/assets/a3693aa9-83b7-424a-9d49-c10b7fe24626" width="100%"/>
 </p>
 
 <p align="center">
