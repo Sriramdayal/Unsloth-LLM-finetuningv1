@@ -20,7 +20,9 @@ coverage.xml
 .mypy_cache
 .pytest_cache
 .hypothesis
+.env
 outputs/
+models/
 test_output/
 wandb/
 .DS_Store

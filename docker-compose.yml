@@ -1,18 +1,32 @@
+# docker-compose.yml
+# Production deployment for the Unsloth LLM Fine-Tuning API.
+#
+# Usage:
+#   docker-compose up --build            # start API server
+#   docker-compose up --build -d         # start in background
+#
+# The Gradio app can still be run separately:
+#   python scripts/app.py
+
 services:
-  unsloth-app:
-    build: .
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
     ports:
-      - "7860:7860"
+      - "8000:8000"
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - WANDB_API_KEY=${WANDB_API_KEY}
+      - LLAMA_N_GPU_LAYERS=-1
     volumes:
-      - .:/app
+      - ./models:/app/models
+      - ./outputs:/app/outputs
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
               count: 1
-              capabilities: [ gpu ]
-    shm_size: 4gb # Increased shared memory for large models
-    command: python scripts/app.py
-    stdin_open: true # docker run -i
-    tty: true # docker run -t
+              capabilities: [gpu]
+    shm_size: 4gb

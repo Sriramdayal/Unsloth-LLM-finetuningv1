@@ -243,3 +243,158 @@ device = HardwareManager.get_device()  # "cuda" | "mps" | "cpu"
 stats = HardwareManager.get_memory_stats()
 # {'device': 'NVIDIA GeForce RTX 4060 ...', 'total_gb': 8.0, ...}
 ```
+
+## 9. REST API Server
+
+The package includes a FastAPI REST API for programmatically fine-tuning and running inference.
+
+### Starting the Server
+
+To launch the server locally on port `8000`:
+
+```bash
+uv run uvicorn src.api:app
+```
+
+> [!WARNING]
+> On Windows, do **not** use the `--reload` flag (e.g. `uvicorn src.api:app --reload`). The Uvicorn reloading process spawns a child process using Python's `multiprocessing` library, which often uses the global Python installation rather than the active virtual environment, leading to a silent crash (`ModuleNotFoundError: No module named 'torch'`).
+
+Once the API starts and prints `Application startup complete.`, the interactive API documentation (Swagger UI) is available at:
+* **Interactive UI Docs**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+* **Static ReDoc**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+
+---
+
+### API Endpoint Reference
+
+#### 1. System Health Check (`GET /api/v1/health`)
+Checks API status and reports the active hardware backend.
+
+* **PowerShell**:
+  ```powershell
+  Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/health" -Method Get
+  ```
+* **Bash / curl**:
+  ```bash
+  curl http://127.0.0.1:8000/api/v1/health
+  ```
+* **Expected Response**:
+  ```json
+  {
+    "status": "healthy",
+    "gpu_available": false,
+    "gpu_name": null,
+    "platform": "Windows",
+    "backend": "CPU (transformers float32 + llama.cpp CPU)"
+  }
+  ```
+
+#### 2. Start Fine-Tuning Job (`POST /api/v1/train`)
+Enqueues a fine-tuning job to run in a background thread and immediately returns a `job_id`.
+
+* **PowerShell**:
+  ```powershell
+  $body = @{
+      model_name_or_path = "unsloth/llama-3-8b-bnb-4bit"
+      dataset_name = "yahma/alpaca-cleaned"
+      lora_r = 16
+      learning_rate = 0.0002
+      num_train_epochs = 1
+      output_dir = "outputs/api_run_model"
+  } | ConvertTo-Json
+
+  Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/train" -Method Post -Body $body -ContentType "application/json"
+  ```
+* **Bash / curl**:
+  ```bash
+  curl -X POST http://127.0.0.1:8000/api/v1/train \
+    -H "Content-Type: application/json" \
+    -d '\''{
+      "model_name_or_path": "unsloth/llama-3-8b-bnb-4bit",
+      "dataset_name": "yahma/alpaca-cleaned",
+      "lora_r": 16,
+      "learning_rate": 0.0002,
+      "num_train_epochs": 1,
+      "output_dir": "outputs/api_run_model"
+    }'\''
+  ```
+* **Expected Response**:
+  ```json
+  {
+    "job_id": "fc94d081",
+    "status": "queued"
+  }
+  ```
+
+#### 3. Poll Training Job Status (`GET /api/v1/train/{job_id}/status`)
+Retrieves the training state, progress percentage, and output folder location.
+
+* **PowerShell**:
+  ```powershell
+  Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/train/fc94d081/status" -Method Get
+  ```
+* **Bash / curl**:
+  ```bash
+  curl http://127.0.0.1:8000/api/v1/train/fc94d081/status
+  ```
+* **Expected Response**:
+  ```json
+  {
+    "job_id": "fc94d081",
+    "status": "running",
+    "progress": 25.5,
+    "output_dir": null,
+    "error_message": null
+  }
+  ```
+
+#### 4. Run Hugging Face / PEFT Inference (`POST /api/v1/infer`)
+Executes single-prompt text generation using `transformers` with optional LoRA adapters.
+
+* **PowerShell**:
+  ```powershell
+  $body = @{
+      model_path = "unsloth/llama-3-8b-bnb-4bit"
+      prompt = "What is fine-tuning?"
+      max_tokens = 256
+      temperature = 0.7
+  } | ConvertTo-Json
+
+  Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/infer" -Method Post -Body $body -ContentType "application/json"
+  ```
+* **Bash / curl**:
+  ```bash
+  curl -X POST http://127.0.0.1:8000/api/v1/infer \
+    -H "Content-Type: application/json" \
+    -d '\''{
+      "model_path": "unsloth/llama-3-8b-bnb-4bit",
+      "prompt": "What is fine-tuning?",
+      "max_tokens": 256,
+      "temperature": 0.7
+    }'\''
+  ```
+
+#### 5. Run GGUF Inference (`POST /api/v1/infer/gguf`)
+Runs high-performance inference using local `.gguf` files via `llama.cpp`.
+
+* **PowerShell**:
+  ```powershell
+  $body = @{
+      model_path = "models/Llama-3-8b-Q4_K_M.gguf"
+      prompt = "Hello!"
+      max_tokens = 64
+  } | ConvertTo-Json
+
+  Invoke-RestMethod -Uri "http://127.0.0.1:8000/api/v1/infer/gguf" -Method Post -Body $body -ContentType "application/json"
+  ```
+* **Bash / curl**:
+  ```bash
+  curl -X POST http://127.0.0.1:8000/api/v1/infer/gguf \
+    -H "Content-Type: application/json" \
+    -d '\''{
+      "model_path": "models/Llama-3-8b-Q4_K_M.gguf",
+      "prompt": "Hello!",
+      "max_tokens": 64
+    }'\''
+  ```
+
