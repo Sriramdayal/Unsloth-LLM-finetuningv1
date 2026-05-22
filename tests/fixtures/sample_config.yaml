@@ -1,0 +1,13 @@
+model:
+  model_name_or_path: "unsloth/llama-3-8b-bnb-4bit"
+  load_in_4bit: true
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+
+training:
+  dataset_name: "yahma/alpaca-cleaned"
+  learning_rate: 0.0002
+  num_train_epochs: 1
+  batch_size: 2
+  output_dir: "outputs/test_run"

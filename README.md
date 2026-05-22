@@ -162,8 +162,28 @@ pip install llama-cpp-python   # Standard CPU build
 
 ### 🐳 Docker
 
+Run the entire pipeline inside a Docker container (includes full GPU support via Nvidia runtime).
+
+#### Start the API Server via Docker Compose
+Build and run the FastAPI server on port `8000`:
 ```bash
 docker compose up --build
+```
+
+#### Run CLI Fine-tuning inside a Running Container
+To run fine-tuning tasks inside a running container, use `docker exec` (or `docker compose exec`). You MUST pass the `PYTHONPATH=.` environment variable so that the internal modules are correctly resolved:
+
+```bash
+# 1. Get the running container ID or name
+docker ps
+
+# 2. Run fine-tuning with CLI parameters
+docker exec -it -e PYTHONPATH=. <container_id_or_name> unsloth-cli train \
+  --model_name_or_path "unsloth/llama-3-8b-bnb-4bit" \
+  --dataset_name "yahma/alpaca-cleaned"
+
+# 3. Or run fine-tuning using a mounted config file
+docker exec -it -e PYTHONPATH=. <container_id_or_name> unsloth-cli train --config config.yaml
 ```
 
 ---
@@ -235,6 +255,41 @@ The pipeline includes an intelligent multi-agent system powered by Hugging Face'
 ```bash
 uv run unsloth-gui
 ```
+
+---
+
+### 🌐 REST API
+
+A production-ready FastAPI REST API server is included for programmatically enqueuing training jobs and running inference.
+
+#### Start the API Server
+Launch the server locally on port `8000`:
+```bash
+uv run uvicorn src.api:app
+```
+*(On Windows, do not use `--reload` due to virtual environment resolving issues during process reloading).*
+
+Once running, the interactive documentation is available at:
+* **Interactive UI Docs**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+* **Static ReDoc**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+
+#### REST API Endpoints
+* **System Health (`GET /api/v1/health`)**: Check current status and active backend.
+  ```bash
+  curl http://127.0.0.1:8000/api/v1/health
+  ```
+* **Start Fine-Tuning (`POST /api/v1/train`)**: Start a background training task. Returns a `job_id` immediately.
+  ```bash
+  curl -X POST http://127.0.0.1:8000/api/v1/train \
+    -H "Content-Type: application/json" \
+    -d '{"model_name_or_path": "unsloth/llama-3-8b-bnb-4bit", "dataset_name": "yahma/alpaca-cleaned"}'
+  ```
+* **Job Status (`GET /api/v1/train/{job_id}/status`)**: Poll status, progress percentage, and output directory.
+  ```bash
+  curl http://127.0.0.1:8000/api/v1/train/<job_id>/status
+  ```
+* **HuggingFace Inference (`POST /api/v1/infer`)**: Generate text using HuggingFace model or LoRA adapters.
+* **GGUF Inference (`POST /api/v1/infer/gguf`)**: Run high-performance local inference via llama.cpp.
 
 ---
 
@@ -343,10 +398,24 @@ scripts/
 
 ---
 
-## 🧪 Smoke Test
+## 🧪 Testing
 
-Validates all imports and reports the active backend:
+The repository features both unit/integration tests and a hardware validation smoke test.
 
+### Running unit and integration tests (pytest)
+Tests are written with `pytest` and use mocked ML frameworks to validate configuration, API schemas, and CLI workflows quickly without GPU access.
+
+To execute the test suite:
+```bash
+# Run pytest with uv
+uv run pytest
+
+# Run tests and generate coverage reports (terminal and HTML)
+./scripts/run_all_tests.sh
+```
+
+### Running the Smoke Test
+Verifies library imports, resolves CUDA/MPS availability, and reports the active backend:
 ```bash
 uv run python scripts/smoke_test.py
 ```
