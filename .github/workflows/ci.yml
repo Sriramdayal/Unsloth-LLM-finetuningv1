@@ -1,4 +1,4 @@
-name: API CI
+name: Continuous Integration
 
 on:
   push:
@@ -7,20 +7,80 @@ on:
     branches: [ "master", "main" ]
 
 jobs:
-  test-api:
+  lint:
+    name: Code Quality & Linting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        run: uv python install 3.11
 
       - name: Install dependencies
-        run: pip install -e ".[api,dev]"
+        run: uv sync --all-extras
 
-      - name: Run API tests
-        run: pytest tests/test_api.py -v
+      - name: Check Formatting (Black)
+        run: uv run black --check src/ tests/ scripts/
 
-      - name: Build production Docker image
-        run: docker build -f Dockerfile.prod -t unsloth-api:latest .
+      - name: Check Import Order (isort)
+        run: uv run isort --check-only src/ tests/ scripts/
+
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Run Unit & Integration Tests
+        run: uv run pytest --cov=src --cov-report=xml --cov-report=term-missing tests/
+
+  docker:
+    name: Container Security & Build Verification
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Production Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.prod
+          tags: unsloth-api:latest
+          outputs: type=docker,dest=/tmp/image.tar
+
+      - name: Load Docker Image
+        run: docker load --input /tmp/image.tar
+
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'unsloth-api:latest'
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'

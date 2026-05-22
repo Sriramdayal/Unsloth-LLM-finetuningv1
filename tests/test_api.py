@@ -37,6 +37,11 @@ class TestHealthEndpoint:
         assert "platform" in data
         assert "backend" in data
 
+    def test_health_method_not_allowed(self):
+        """POST to /health should fail"""
+        response = client.post("/api/v1/health")
+        assert response.status_code == 405
+
 
 # ── Inference ─────────────────────────────────────────────────────────────────
 
@@ -88,6 +93,18 @@ class TestInferenceEndpoint:
         assert data["response"] == "Mocked response text"
         assert data["model"] == "test/model"
         assert "tokens_generated" in data
+
+    def test_infer_valid_request_structure(self):
+        """POST /infer with valid body returns 200 or 500"""
+        response = client.post(
+            "/api/v1/infer",
+            json={
+                "model_path": "unsloth/llama-3-8b-bnb-4bit",
+                "prompt": "What is machine learning?",
+                "max_tokens": 128,
+            },
+        )
+        assert response.status_code in [200, 500]
 
 
 # ── GGUF Inference ────────────────────────────────────────────────────────────
@@ -149,6 +166,18 @@ class TestTrainingEndpoint:
         assert status_resp.status_code == 200
         assert status_resp.json()["status"] == "queued"
 
+    def test_train_validation_bad_epochs(self):
+        """POST /train with num_train_epochs=0 returns 422"""
+        response = client.post(
+            "/api/v1/train",
+            json={
+                "model_name_or_path": "unsloth/llama-3-8b-bnb-4bit",
+                "dataset_name": "yahma/alpaca-cleaned",
+                "num_train_epochs": 0,
+            },
+        )
+        assert response.status_code == 422
+
 
 # ── Schema Validation ─────────────────────────────────────────────────────────
 
@@ -161,3 +190,74 @@ class TestTrainingRequestDefaults:
         """Posting with no overrides should accept all defaults."""
         response = client.post("/api/v1/train", json={})
         assert response.status_code == 200
+
+
+# ── ModelCache & use_mock Tests ──────────────────────────────────────────────
+
+
+class TestModelCache:
+    """Tests for ModelCache LRU eviction and cleanup."""
+
+    def test_model_cache_lru_eviction(self):
+        from src.api.dependencies import ModelCache
+
+        cache = ModelCache(max_size=2)
+        r1 = MagicMock()
+        r2 = MagicMock()
+        r3 = MagicMock()
+
+        r2.model = "model_val"
+        r2.tokenizer = "tokenizer_val"
+        r2.config = "config_val"
+
+        cache.put("k1", r1)
+        cache.put("k2", r2)
+
+        assert "k1" in cache
+        assert "k2" in cache
+
+        # Access k1 to make it most recently used
+        cache.get("k1")
+
+        # Put k3 (should evict k2 because k1 is MRU)
+        cache.put("k3", r3)
+
+        assert "k1" in cache
+        assert "k3" in cache
+        assert "k2" not in cache
+
+        # Check memory cleanup attributes were deleted/None on evicted runner
+        assert r2.model is None
+        assert r2.tokenizer is None
+        assert r2.config is None
+
+
+class TestTrainingMocking:
+    """Tests for TrainingRequest with use_mock parameter."""
+
+    @patch("src.api.routes.training._run_training_job")
+    def test_train_with_use_mock(self, mock_train):
+        """Verify POST /train accepts use_mock and calls worker."""
+        response = client.post(
+            "/api/v1/train",
+            json={
+                "model_name_or_path": "unsloth/llama-3-8b-bnb-4bit",
+                "dataset_name": "yahma/alpaca-cleaned",
+                "use_mock": True,
+            },
+        )
+        assert response.status_code == 200
+        # Check that the worker was called with TrainingRequest having use_mock=True
+        mock_train.assert_called_once()
+        args, _ = mock_train.call_args
+        req = args[1]
+        assert req.use_mock is True
+
+
+class TestDocsEndpoint:
+    """Swagger UI auto-generated at /docs"""
+
+    def test_api_docs_available(self):
+        response = client.get("/docs")
+        assert response.status_code == 200
+        assert "swagger" in response.text.lower()

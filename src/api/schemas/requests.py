@@ -31,6 +31,7 @@ class TrainingRequest(BaseModel):
     batch_size: int = Field(default=2, ge=1, le=16)
     output_dir: str = Field(default="outputs/api_run")
     push_to_hub: bool = Field(default=False)
+    use_mock: bool = Field(default=False)
 
 
 class JobStatusResponse(BaseModel):

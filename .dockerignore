@@ -1,0 +1,46 @@
+# Version Control
+.git
+.github
+
+# Python Caches & Environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+env/
+*.egg-info/
+build/
+dist/
+
+# Tests & Coverage Reports
+tests/
+htmlcov/
+.coverage
+coverage.xml
+
+# Data, Models & Outputs
+outputs/
+models/
+data/
+*.ipynb
+.ipynb_checkpoints/
+.jupyter/
+
+# Configuration & Secrets
+.env
+.env.example
+
+# Documentation
+documentation.md
+README.md
+LICENSE
+CHANGELOG.md
+
+# Developer tools
+Makefile
+scripts/run_tests.sh
+scripts/run_all_tests.sh

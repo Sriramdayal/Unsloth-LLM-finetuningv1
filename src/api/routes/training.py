@@ -54,6 +54,7 @@ def _run_training_job(job_id: str, req: TrainingRequest):
             load_in_4bit=True,
             lora_r=req.lora_r,
             lora_alpha=req.lora_alpha,
+            use_mock=req.use_mock,
         )
         train_config = TrainConfig(
             dataset_name=req.dataset_name,

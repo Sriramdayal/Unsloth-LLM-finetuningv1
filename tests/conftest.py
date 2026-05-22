@@ -57,3 +57,51 @@ for mod_name in _HEAVY_MODULES:
             mock.float16 = "float16"
             mock.bfloat16 = "bfloat16"
         sys.modules[mod_name] = mock
+
+
+# ── Shared fixtures for tests ───────────────────────────────────────────────
+
+import pytest
+from fastapi.testclient import TestClient
+
+from src.api.main import create_app
+from src.config import ModelConfig, TrainConfig
+
+
+@pytest.fixture
+def client():
+    """FastAPI test client"""
+    app = create_app()
+    with TestClient(app) as c:
+        yield c
+
+
+@pytest.fixture
+def mock_model_config():
+    return ModelConfig(
+        model_name_or_path="unsloth/llama-3-8b-bnb-4bit",
+        load_in_4bit=True,
+        lora_r=16,
+        lora_alpha=32,
+    )
+
+
+@pytest.fixture
+def mock_train_config():
+    return TrainConfig(
+        dataset_name="yahma/alpaca-cleaned",
+        output_dir="outputs/test_run",
+        batch_size=2,
+        learning_rate=2e-4,
+        num_train_epochs=1,
+    )
+
+
+@pytest.fixture
+def sample_dataset_entry():
+    """Mock dataset entry for data tests"""
+    return {
+        "instruction": "What is sepsis?",
+        "input": "",
+        "output": "Sepsis is a life-threatening organ dysfunction caused by a dysregulated host response to infection.",
+    }

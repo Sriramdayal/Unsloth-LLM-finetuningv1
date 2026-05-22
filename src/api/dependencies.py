@@ -6,33 +6,68 @@ Provides a thread-safe model cache and a job registry shared across route module
 
 from __future__ import annotations
 
+import gc
 import threading
+from collections import OrderedDict
 from typing import Any, Dict
+
+import torch
 
 
 class ModelCache:
     """
-    Thread-safe in-memory cache for loaded ModelRunner instances.
+    Thread-safe in-memory cache for loaded ModelRunner instances with LRU eviction.
 
     Keyed by ``model_path:adapter_path`` so the same model/adapter
     combination is loaded only once across requests.
     """
 
-    def __init__(self):
-        self._cache: Dict[str, Any] = {}
+    def __init__(self, max_size: int = 1):
+        self._max_size = max_size
+        self._cache: OrderedDict[str, Any] = OrderedDict()
         self._lock = threading.Lock()
 
     def get(self, key: str):
-        """Return a cached runner or None."""
-        return self._cache.get(key)
+        """Return a cached runner or None (thread-safe, updates LRU order)."""
+        with self._lock:
+            if key in self._cache:
+                self._cache.move_to_end(key)
+                return self._cache[key]
+            return None
 
     def put(self, key: str, runner):
-        """Store a runner in the cache (thread-safe)."""
+        """Store a runner in the cache (thread-safe, evicts LRU items if full)."""
         with self._lock:
+            if key in self._cache:
+                self._cache[key] = runner
+                self._cache.move_to_end(key)
+                return
+
+            # If cache is full, evict LRU items until space is available
+            while len(self._cache) >= self._max_size and self._cache:
+                lru_key, lru_runner = self._cache.popitem(last=False)
+                self._evict_runner(lru_runner)
+
             self._cache[key] = runner
 
+    def _evict_runner(self, runner):
+        """Delete model and tokenizer attributes, and clean up memory."""
+        if runner is not None:
+            if hasattr(runner, "model"):
+                runner.model = None
+            if hasattr(runner, "tokenizer"):
+                runner.tokenizer = None
+            if hasattr(runner, "config"):
+                runner.config = None
+
+        gc.collect()
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
     def __contains__(self, key: str) -> bool:
-        return key in self._cache
+        with self._lock:
+            return key in self._cache
 
 
 class JobRegistry:
