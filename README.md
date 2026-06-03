@@ -87,7 +87,7 @@ A **professional enterprise pipeline** for fine-tuning and running open-source L
 
 ## 📦 Installation
 
-We recommend [uv](https://docs.astral.sh/uv/) for fast, reliable dependency management.
+I recommend [uv](https://docs.astral.sh/uv/) for fast, reliable dependency management.
 
 ### 🪟 Windows — Native NVIDIA GPU (No WSL Required)
 
