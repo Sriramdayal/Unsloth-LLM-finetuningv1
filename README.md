@@ -12,10 +12,10 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Linux-Unsloth_Triton-blue?logo=linux&logoColor=white" />
   <img src="https://img.shields.io/badge/Windows-CUBLAS_QLoRA-blue?logo=windows&logoColor=white" />
-  <img src="https://img.shields.io/badge/macOS-Metal_MPS-blue?logo=apple&logoColor=white" />
+  <img src="https://img.shields.io/badge/macOS-Apple_MLX-blue?logo=apple&logoColor=white" />
   <img src="https://img.shields.io/badge/Inference-llama.cpp-green" />
-  <img src="https://img.shields.io/badge/Training-bitsandbytes_QLoRA-green" />
-  <img src="https://img.shields.io/badge/LoRA-PEFT-yellow" />
+  <img src="https://img.shields.io/badge/Training-MLX_/_QLoRA-green" />
+  <img src="https://img.shields.io/badge/LoRA-PEFT_/_MLX-yellow" />
   <img src="https://img.shields.io/badge/Trainer-TRL_SFTTrainer-orange" />
   <img src="https://img.shields.io/badge/License-MIT-purple" />
 </p>
@@ -44,9 +44,9 @@ A **professional enterprise pipeline** for fine-tuning and running open-source L
 
 | Feature | Details |
 |---|---|
-| ⚡ **GPU inference** | llama.cpp — CUBLAS (Windows) · CUDA (Linux) · Metal (macOS) |
-| 🏋️ **GPU training** | Unsloth Triton (Linux) · bitsandbytes 4-bit QLoRA (Windows/Linux) · MPS (macOS) |
-| 🔄 **Dual inference backends** | Auto-selects: `.gguf` → llama.cpp · HF repo/dir → transformers |
+| ⚡ **GPU inference** | Apple MLX / llama.cpp — Metal (macOS) · CUBLAS (Windows) · CUDA (Linux) |
+| 🏋️ **GPU training** | Unsloth Triton (Linux) · bitsandbytes 4-bit QLoRA (Windows/Linux) · Apple MLX LoRA (macOS) |
+| 🔄 **Dual inference backends** | Auto-selects: `.gguf` → llama.cpp · HF repo/dir → transformers / mlx-lm |
 | 🤖 **Auto backend selection** | Platform detected at runtime — no config needed |
 | 🧠 **Multi-Agent System (Beta)** | `smolagents` powered AI assistant for model/param selection & coding |
 | 🏗️ **Modular architecture** | Clean separation: `ModelFactory` · `ModelRunner` · `DataProcessor` |
@@ -68,15 +68,15 @@ A **professional enterprise pipeline** for fine-tuning and running open-source L
 │ 🪟 Windows + NVIDIA      │ bitsandbytes 4-bit NF4    llama.cpp CUBLAS     │
 │    (No WSL required)     │ QLoRA + PEFT LoRA         OR transformers      │
 ├──────────────────────────┼────────────────────────────────────────────────┤
-│ 🍎 macOS Apple Silicon   │ transformers float16      llama.cpp Metal      │
-│    (M1 / M2 / M3 / M4)  │ MPS device + PEFT LoRA    OR transformers MPS  │
+│ 🍎 macOS Apple Silicon   │ mlx-lm Apple MLX          mlx-lm generation    │
+│    (M1 / M2 / M3 / M4)  │ MLX Native LoRA           OR llama.cpp Metal   │
 ├──────────────────────────┼────────────────────────────────────────────────┤
 │ 💻 CPU / macOS Intel     │ transformers float32      llama.cpp CPU        │
 │    (No GPU)              │ + PEFT LoRA               OR transformers CPU  │
 └──────────────────────────┴────────────────────────────────────────────────┘
 
   Windows → cudart64_12.dll auto-resolved from PyTorch bundled CUDA runtime
-  macOS   → Metal support built into llama-cpp-python wheel
+  macOS   → Apple MLX native integration / Metal support built into llama-cpp-python wheel
   Linux   → libcudart.so resolved via LD_LIBRARY_PATH (standard CUDA setup)
 ```
 
@@ -145,9 +145,9 @@ pip install -e ".[macos,gui]"
 CMAKE_ARGS="-DGGML_METAL=on" pip install llama-cpp-python
 ```
 
-> **Training:** Uses Apple MPS device with `float16`. Note: bitsandbytes 4-bit is not
-> yet supported on MPS, so models run in full `float16` precision.
-> **Inference:** llama.cpp uses Metal GPU — fast and energy-efficient.
+> **Training:** Uses Apple's native **MLX** framework via `mlx-lm`. 
+> Data is converted on the fly to support MLX's high-speed LoRA tuning.
+> **Inference:** Natively runs on MLX for Hugging Face models, or llama.cpp Metal for GGUFs.
 
 ---
 
@@ -300,22 +300,23 @@ from src import ModelConfig, TrainConfig
 from src.core.model_runner import ModelRunner
 from src.data import DataProcessor
 
-# ── Training (backend auto-selected per OS) ──────────────────────────────────
+# ── Training (backend auto-selected: Unsloth/Linux, QLoRA/Windows, MLX/macOS) ─
 config = ModelConfig(
     model_name_or_path="unsloth/llama-3-8b-bnb-4bit",
-    load_in_4bit=True,   # NF4 4-bit QLoRA via bitsandbytes (CUDA/Linux/Windows)
+    load_in_4bit=True,   # NF4 4-bit QLoRA on CUDA; ignored & auto-loaded on macOS MLX
     lora_r=16,
 )
 runner = ModelRunner(config)
-model, tokenizer = runner.setup_for_training()  # Applies LoRA automatically
+model, tokenizer = runner.setup_for_training()  # Applies LoRA (or configures MLX)
 
 # ── Inference: GGUF → llama.cpp (CUBLAS / CUDA / Metal) ─────────────────────
 gguf_runner = ModelRunner(ModelConfig(model_name_or_path="model.gguf"))
 gguf_runner.setup_for_inference()
 print(gguf_runner.generate("Explain gradient descent in simple terms."))
 
-# ── Inference: HF safetensors + LoRA adapter ─────────────────────────────────
+# ── Inference: HF / MLX + LoRA adapter ───────────────────────────────────────
 hf_runner = ModelRunner(config)
+# Auto-selects MLX (mlx-lm) on macOS Apple Silicon, transformers on Windows/Linux
 hf_runner.setup_for_inference(adapter_path="outputs/lora_adapters")
 print(hf_runner.generate("What is a transformer model?"))
 ```
@@ -381,12 +382,12 @@ src/
 ├── cli.py                  # Unified CLI: train + infer subcommands
 ├── config.py               # ModelConfig / TrainConfig dataclasses
 ├── data.py                 # DataProcessor (load, format, tokenize)
-├── train.py                # train_model() — TRL SFTTrainer wrapper
+├── train.py                # train_model() — SFTTrainer / MLX training orchestrator
 ├── core/
-│   ├── factory.py          # Cross-platform ModelFactory (Unsloth / QLoRA / MPS)
-│   └── model_runner.py     # ModelRunner: GGUF/llama.cpp + HF dual-backend
+│   ├── factory.py          # Cross-platform ModelFactory (Unsloth / QLoRA / MLX / MPS)
+│   └── model_runner.py     # ModelRunner: GGUF/llama.cpp + HF/MLX dual-backend
 └── utils/
-    ├── env.py              # HardwareManager (CUDA / MPS / CPU detection)
+    ├── env.py              # HardwareManager (CUDA / MLX / MPS / CPU detection)
     └── llama_loader.py     # Platform DLL/library bootstrap for llama-cpp-python
 
 scripts/

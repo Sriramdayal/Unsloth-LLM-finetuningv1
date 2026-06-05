@@ -10,6 +10,7 @@ import logging
 import os
 from typing import Any, Dict, List, Optional, Tuple
 
+import sys
 import torch
 from transformers import TrainingArguments  # Kept for fallback if needed
 from trl import SFTConfig, SFTTrainer
@@ -44,6 +45,11 @@ def train_model(
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     gc.collect()
+
+    # 1b. MLX Routing (macOS Apple Silicon)
+    if sys.platform == "darwin" and getattr(HardwareManager, "use_mlx", lambda: False)():
+        logger.info("Platform: macOS + MLX → delegating to mlx_lm.lora subprocess")
+        return _train_mlx(dataset, train_config, model_config)
 
     # 2. Mock Mode Logic
     if model_config.use_mock:
@@ -112,3 +118,49 @@ def train_model(
     gc.collect()
 
     return stats, train_config.output_dir
+
+
+def _train_mlx(dataset, train_config: TrainConfig, model_config: ModelConfig) -> Tuple[Any, str]:
+    """Train using Apple MLX via mlx_lm.lora."""
+    import subprocess
+    import tempfile
+    
+    logger.info("Exporting dataset to JSONL for MLX...")
+    
+    with tempfile.TemporaryDirectory() as tmpdir:
+        train_path = os.path.join(tmpdir, "train.jsonl")
+        valid_path = os.path.join(tmpdir, "valid.jsonl")
+        
+        dataset.to_json(train_path)
+        
+        # Simple validation split for MLX requirement
+        val_size = min(10, len(dataset))
+        if val_size > 0:
+            dataset.select(range(val_size)).to_json(valid_path)
+        
+        # Calculate iterations if max_steps is not explicitly set
+        if train_config.max_steps > 0:
+            iters = train_config.max_steps
+        else:
+            iters = int((len(dataset) / train_config.batch_size) * train_config.num_train_epochs)
+            iters = max(10, iters) # ensure at least some iterations
+            
+        cmd = [
+            "python", "-m", "mlx_lm.lora",
+            "--model", model_config.model_name_or_path,
+            "--train",
+            "--data", tmpdir,
+            "--iters", str(iters),
+            "--batch-size", str(train_config.batch_size),
+            "--learning-rate", str(train_config.learning_rate),
+            "--adapter-path", train_config.output_dir
+        ]
+        
+        logger.info(f"Running MLX training command: {' '.join(cmd)}")
+        try:
+            subprocess.run(cmd, check=True)
+            logger.info("MLX training completed successfully.")
+            return {"status": "success", "backend": "mlx"}, train_config.output_dir
+        except subprocess.CalledProcessError as e:
+            logger.error(f"MLX training failed: {e}")
+            raise RuntimeError(f"MLX training failed: {e}") from e

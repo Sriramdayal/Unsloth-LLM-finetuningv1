@@ -32,6 +32,7 @@ from typing import Optional, Tuple
 import torch
 
 from ..config import ModelConfig
+from ..utils.env import HardwareManager
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +146,23 @@ def _apply_lora_unsloth(model, config: ModelConfig):
     )
     logger.info("Factory [Unsloth]: LoRA applied successfully.")
     return model
+
+
+def _load_with_mlx(config: ModelConfig) -> Tuple:
+    """
+    Load model via MLX (macOS Apple Silicon).
+    """
+    import mlx_lm
+
+    logger.info(f"Factory [MLX]: Loading '{config.model_name_or_path}'")
+    model, tokenizer = mlx_lm.load(config.model_name_or_path)
+
+    if hasattr(tokenizer, "pad_token") and tokenizer.pad_token is None:
+        if hasattr(tokenizer, "eos_token"):
+            tokenizer.pad_token = tokenizer.eos_token
+
+    logger.info("Factory [MLX]: Model + tokenizer loaded successfully.")
+    return model, tokenizer
 
 
 def _load_with_transformers(config: ModelConfig) -> Tuple:
@@ -265,6 +283,9 @@ class ModelFactory:
             elif plat == "win32":
                 logger.info("Platform: Windows + CUDA → bitsandbytes 4-bit QLoRA (no Triton)")
             elif plat == "darwin":
+                if HardwareManager.use_mlx():
+                    logger.info("Platform: macOS + MLX → using mlx-lm")
+                    return _load_with_mlx(config)
                 device = "MPS (Apple Silicon)" if _has_mps() else "CPU (Intel)"
                 logger.info(f"Platform: macOS → transformers {device}")
             else:
@@ -288,6 +309,10 @@ class ModelFactory:
             # Unsloth LoRA: Linux + CUDA + unsloth installed
             if _platform() == "linux" and _has_cuda() and _has_unsloth():
                 return _apply_lora_unsloth(model, config)
+
+            if _platform() == "darwin" and HardwareManager.use_mlx():
+                logger.info("Factory [MLX]: LoRA applied internally during mlx_lm training.")
+                return model
 
             # Standard PEFT: Windows / macOS / Linux fallback
             return _apply_lora_peft(model, config)
@@ -313,6 +338,10 @@ class ModelFactory:
                 logger.info("Factory [Unsloth]: Switched to fast inference mode.")
             except Exception:
                 pass  # Fall through to standard eval
+
+        if _platform() == "darwin" and HardwareManager.use_mlx():
+            logger.info("Factory [MLX]: Model is natively ready for inference.")
+            return model
 
         model.eval()
         logger.info("Factory: Model in eval/inference mode.")

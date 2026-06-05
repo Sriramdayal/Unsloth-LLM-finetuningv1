@@ -5,9 +5,9 @@ The package now uses a **Windows-native GPU stack** — no Triton, no WSL2 requi
 
 | Layer | Technology |
 |---|---|
-| Training | `transformers` + `bitsandbytes` 4-bit NF4 QLoRA + `peft` + `trl` SFTTrainer |
-| Inference (GGUF) | `llama-cpp-python` with CUBLAS precompiled binaries |
-| Inference (HF) | `transformers` generate() with optional PEFT adapters |
+| Training | `unsloth` (Linux CUDA) · `bitsandbytes` 4-bit (Windows/Linux CUDA) · `mlx-lm` (macOS Apple Silicon) |
+| Inference (GGUF) | `llama-cpp-python` (Metal on macOS, CUBLAS on Windows, CUDA on Linux) |
+| Inference (HF) | `mlx-lm` (macOS Apple Silicon) · `transformers` generate() (Windows/Linux/CPU) |
 
 ---
 
@@ -27,17 +27,27 @@ uv pip install llama-cpp-python \
 uv pip install -e ".[unsloth,gpu,gui]"
 ```
 
+### macOS (Apple Silicon — MLX)
+```bash
+uv pip install -e ".[macos,gui]"
+
+# Install llama-cpp-python with Metal support (for GGUF inference)
+CMAKE_ARGS="-DGGML_METAL=on" uv pip install llama-cpp-python --no-cache
+```
+
 ---
 
 ## 2. ModelRunner API
 
 `ModelRunner` is the high-level facade that handles model loading, LoRA patching,
-and inference. It auto-selects the backend based on the model path:
+and inference. It auto-selects the backend based on the model path and hardware:
 
-| `model_name_or_path` ends in | Backend used |
-|---|---|
-| `.gguf` | llama-cpp-python (CUBLAS, GPU) |
-| HF repo ID or directory | transformers (CUDA via torch) |
+| `model_name_or_path` ends in | Platform / Acceleration | Backend used |
+|---|---|---|
+| `.gguf` | All | llama-cpp-python (CUBLAS/CUDA/Metal/CPU) |
+| HF repo ID or directory | macOS Apple Silicon (MLX installed) | mlx-lm |
+| HF repo ID or directory | Windows / Linux (CUDA) | transformers (bitsandbytes / torch) |
+| HF repo ID or directory | Any (CPU) | transformers (torch float32) |
 
 ### Training Setup
 ```python
@@ -145,7 +155,7 @@ BitsAndBytesConfig(
 
 ## 5. Training Orchestration
 
-`train_model()` wraps TRL's `SFTTrainer` with hardware-aware defaults.
+`train_model()` wraps TRL's `SFTTrainer` with hardware-aware defaults, or delegates to Apple-native `mlx-lm` on macOS.
 
 ```python
 from src.train import train_model
@@ -170,6 +180,7 @@ stats, output_path = train_model(
 ```
 
 **Key behaviours:**
+- **macOS Apple Silicon (MLX)**: If MLX is installed, training is automatically offloaded to `mlx_lm.lora` via a subprocess, converting the dataset to JSONL on-the-fly.
 - **Auto-Precision**: Selects `bf16` if supported by GPU, else `fp16`.
 - **Optimized Optimizer**: Uses `adamw_8bit` on CUDA, `adamw_torch` on CPU.
 - **Memory Management**: Clears CUDA cache before and after training.

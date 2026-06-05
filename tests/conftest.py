@@ -42,6 +42,9 @@ _HEAVY_MODULES = [
     "pyarrow.dataset",
     "tqdm",
     "tqdm.auto",
+    "mlx",
+    "mlx.core",
+    "mlx_lm",
 ]
 
 for mod_name in _HEAVY_MODULES:

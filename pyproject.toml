@@ -70,11 +70,11 @@ linux = [
     "triton>=2.1.0; sys_platform == 'linux'",
 ]
 
-# macOS Apple Silicon: MPS training + Metal GGUF inference
-# Install: CMAKE_ARGS='-DGGML_METAL=on' pip install llama-cpp-python
-#          then: pip install unsloth-finetuning[macos]
+# macOS Apple Silicon: MLX training and inference
+# Install: pip install unsloth-finetuning[macos]
 macos = [
-    "llama-cpp-python>=0.3.0",
+    "mlx @ git+https://github.com/ml-explore/mlx.git",
+    "mlx-lm",
 ]
 
 # CPU-only: no GPU required (slow, for testing / non-GPU machines)

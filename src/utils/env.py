@@ -150,6 +150,8 @@ class HardwareManager:
             return label
 
         if device == "mps":
+            if HardwareManager.use_mlx():
+                return "macOS + Apple Silicon (MLX framework)"
             return "macOS + Apple Silicon MPS (transformers float16 + llama.cpp Metal)"
 
         return "CPU (transformers float32 + llama.cpp CPU)"
@@ -181,3 +183,15 @@ class HardwareManager:
             return False
 
         return torch.cuda.is_available()
+
+    @staticmethod
+    def use_mlx() -> bool:
+        """Returns True if MLX framework is available for Apple Silicon."""
+        if HardwareManager.get_device() != "mps":
+            return False
+        try:
+            import mlx.core as mx
+            import mlx_lm
+            return True
+        except ImportError:
+            return False

@@ -37,6 +37,7 @@ from typing import Optional
 import torch
 
 from ..config import ModelConfig
+from ..utils.env import HardwareManager
 from .factory import ModelFactory, _has_cuda, _has_mps, _has_unsloth, _platform
 
 logger = logging.getLogger(__name__)
@@ -214,17 +215,26 @@ class ModelRunner:
 
         else:
             # ── HF path: transformers (+ optional PEFT adapter) ──────────────
-            self._backend = "hf"
-            if self.model is None:
-                self.model, self.tokenizer = ModelFactory.create_model_and_tokenizer(self.config)
+            if _platform() == "darwin" and HardwareManager.use_mlx():
+                self._backend = "mlx"
+                import mlx_lm
+                logger.info(f"ModelRunner [MLX]: Loading model '{model_path}' with adapter '{adapter_path}'")
+                self.model, self.tokenizer = mlx_lm.load(model_path, adapter_path=adapter_path)
+                if hasattr(self.tokenizer, "pad_token") and self.tokenizer.pad_token is None:
+                    if hasattr(self.tokenizer, "eos_token"):
+                        self.tokenizer.pad_token = self.tokenizer.eos_token
+            else:
+                self._backend = "hf"
+                if self.model is None:
+                    self.model, self.tokenizer = ModelFactory.create_model_and_tokenizer(self.config)
 
-            if adapter_path:
-                from peft import PeftModel
+                if adapter_path:
+                    from peft import PeftModel
 
-                logger.info(f"Loading LoRA adapter from: {adapter_path}")
-                self.model = PeftModel.from_pretrained(self.model, adapter_path)
+                    logger.info(f"Loading LoRA adapter from: {adapter_path}")
+                    self.model = PeftModel.from_pretrained(self.model, adapter_path)
 
-            self.model = ModelFactory.prepare_for_inference(self.model)
+                self.model = ModelFactory.prepare_for_inference(self.model)
 
         logger.info(
             f"ModelRunner: Ready for inference  "
@@ -258,11 +268,36 @@ class ModelRunner:
 
         if self._backend == "gguf":
             return self._generate_gguf(prompt, max_new_tokens, temperature)
+        elif self._backend == "mlx":
+            return self._generate_mlx(prompt, max_new_tokens, temperature)
         return self._generate_hf(prompt, max_new_tokens, temperature)
 
     # ------------------------------------------------------------------
     # Backend-specific generation
     # ------------------------------------------------------------------
+
+    def _generate_mlx(self, prompt: str, max_new_tokens: int, temperature: float) -> str:
+        """MLX generation for Apple Silicon."""
+        import mlx_lm
+
+        # Apply chat template if supported
+        if hasattr(self.tokenizer, "apply_chat_template"):
+            formatted_prompt = self.tokenizer.apply_chat_template(
+                [{"role": "user", "content": prompt}],
+                tokenize=False,
+                add_generation_prompt=True,
+            )
+        else:
+            formatted_prompt = prompt
+
+        return mlx_lm.generate(
+            self.model,
+            self.tokenizer,
+            prompt=formatted_prompt,
+            max_tokens=max_new_tokens,
+            temp=temperature,
+            verbose=False,
+        )
 
     def _generate_gguf(self, prompt: str, max_new_tokens: int, temperature: float) -> str:
         """llama-cpp-python generation (GGUF — CUDA / Metal / CPU)."""
