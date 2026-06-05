@@ -190,45 +190,111 @@ docker exec -it -e PYTHONPATH=. <container_id_or_name> unsloth-cli train --confi
 
 ## 🛠 Usage Guide
 
-### 🚀 CLI — Training
+The pipeline detects your operating system and hardware configuration automatically at runtime.
 
-**GPU training (auto-selects backend for your OS):**
-```bash
-uv run unsloth-cli train \
-  --model_name_or_path "unsloth/llama-3-8b-bnb-4bit" \
-  --dataset_name "yahma/alpaca-cleaned"
-```
+### 🐧 Linux (CUDA / Unsloth)
 
-**Training from a config file:**
-```bash
-uv run unsloth-cli train --config config.yaml
-```
+Linux environments with NVIDIA GPUs run the full **Unsloth Triton** stack for maximum training speed.
 
-**CPU Mock Mode (test without a GPU):**
-```bash
-uv run unsloth-cli train \
-  --model_name_or_path "any-model-id" \
-  --use_mock True \
-  --dataset_name "yahma/alpaca-cleaned"
-```
+* **Training (CLI):**
+  ```bash
+  uv run unsloth-cli train \
+    --model_name_or_path "unsloth/llama-3-8b-bnb-4bit" \
+    --dataset_name "yahma/alpaca-cleaned"
+  ```
+* **Inference — GGUF (via llama.cpp CUDA):**
+  ```bash
+  uv run unsloth-cli infer \
+    --model "path/to/model.gguf" \
+    --prompt "Write a Python binary search implementation."
+  ```
+* **Inference — HuggingFace / LoRA Adapter (via Transformers):**
+  ```bash
+  uv run unsloth-cli infer \
+    --model "outputs/lora_adapters" \
+    --prompt "Explain gradient descent in simple terms."
+  ```
 
 ---
 
-### 🔍 CLI — Inference
+### 🪟 Windows (CUDA / QLoRA)
 
-**GGUF model (llama.cpp — CUBLAS / CUDA / Metal, auto-detected):**
-```bash
-uv run unsloth-cli infer \
-  --model "path/to/model.gguf" \
-  --prompt "Write a Python binary search implementation."
-```
+Windows environments with NVIDIA GPUs run **bitsandbytes 4-bit QLoRA** training natively (no WSL2 required).
 
-**HuggingFace safetensors / LoRA adapter:**
-```bash
-uv run unsloth-cli infer \
-  --model "outputs/lora_adapters" \
-  --prompt "What is machine learning?"
-```
+* **Training (CLI):**
+  ```bash
+  uv run unsloth-cli train \
+    --model_name_or_path "unsloth/llama-3-8b-bnb-4bit" \
+    --dataset_name "yahma/alpaca-cleaned"
+  ```
+* **Inference — GGUF (via llama.cpp CUBLAS):**
+  ```bash
+  uv run unsloth-cli infer \
+    --model "path/to/model.gguf" \
+    --prompt "Write a Python binary search implementation."
+  ```
+* **Inference — HuggingFace / LoRA Adapter (via Transformers):**
+  ```bash
+  uv run unsloth-cli infer \
+    --model "outputs/lora_adapters" \
+    --prompt "Explain gradient descent in simple terms."
+  ```
+
+---
+
+### 🍎 macOS (Apple Silicon / MLX)
+
+macOS environments run Apple's native **MLX** (`mlx-lm`) backend for optimal hardware acceleration.
+
+* **Training (CLI):**
+  MLX training automatically exports your dataset to JSONL format and runs MLX native LoRA tuning.
+  ```bash
+  uv run unsloth-cli train \
+    --model_name_or_path "mlx-community/Llama-3-8B-Instruct-4bit" \
+    --dataset_name "yahma/alpaca-cleaned"
+  ```
+* **Inference — GGUF (via llama.cpp Metal):**
+  ```bash
+  uv run unsloth-cli infer \
+    --model "path/to/model.gguf" \
+    --prompt "Write a Python binary search implementation."
+  ```
+* **Inference — HuggingFace / MLX (via mlx-lm):**
+  Runs natively on the MLX engine:
+  ```bash
+  uv run unsloth-cli infer \
+    --model "mlx-community/Llama-3-8B-Instruct-4bit" \
+    --prompt "Explain gradient descent in simple terms."
+  ```
+
+---
+
+### 💻 CPU-Only (Any OS, No GPU)
+
+Falls back to standard PyTorch CPU execution and llama.cpp CPU inference.
+
+* **Training (CLI — Mock Mode recommended for testing):**
+  ```bash
+  uv run unsloth-cli train \
+    --model_name_or_path "any-model-id" \
+    --use_mock True \
+    --dataset_name "yahma/alpaca-cleaned"
+  ```
+* **Inference — GGUF (via llama.cpp CPU):**
+  ```bash
+  uv run unsloth-cli infer \
+    --model "path/to/model.gguf" \
+    --prompt "Write a Python binary search implementation."
+  ```
+
+---
+
+### ⚙️ Universal Configurations
+
+* **Training from a config file (Works on all platforms):**
+  ```bash
+  uv run unsloth-cli train --config config.yaml
+  ```
 
 ---
 
