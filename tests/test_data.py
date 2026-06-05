@@ -33,3 +33,27 @@ def test_dataprocessor_safe_parse():
 
     invalid_val = "not a valid string"
     assert DataProcessor._safe_parse(invalid_val) == []
+
+
+def test_dataprocessor_custom_mappings():
+    """Test that custom dataset overrides work in DataProcessor"""
+    model_cfg = ModelConfig(model_name_or_path="test/model")
+    train_cfg = TrainConfig(
+        dataset_name="custom/dataset",
+        dataset_style="alpaca",
+        dataset_instruction_column="my_prompt",
+        dataset_output_column="my_response",
+        dataset_input_column="my_context",
+    )
+    tokenizer = MagicMock()
+    tokenizer.eos_token = "<eos>"
+    
+    processor = DataProcessor(model_cfg, train_cfg, tokenizer)
+    processor.raw_dataset = MagicMock()
+    processor.raw_dataset.column_names = ["my_prompt", "my_response", "my_context"]
+    
+    mapping = processor._auto_detect_mapping()
+    assert mapping["instruction"] == "my_prompt"
+    assert mapping["output"] == "my_response"
+    assert mapping["input"] == "my_context"
+

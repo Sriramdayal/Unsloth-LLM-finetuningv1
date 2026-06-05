@@ -95,6 +95,22 @@ class TrainConfig:
         default="text",
         metadata={"help": "The column name in the dataset containing the text data."},
     )
+    dataset_style: str = field(
+        default="auto",
+        metadata={"help": "The format/style of the dataset (e.g. auto, alpaca, chat, movie_recommender)."},
+    )
+    dataset_instruction_column: Optional[str] = field(
+        default=None,
+        metadata={"help": "The column name containing the instructions/prompts."},
+    )
+    dataset_output_column: Optional[str] = field(
+        default=None,
+        metadata={"help": "The column name containing the targets/outputs."},
+    )
+    dataset_input_column: Optional[str] = field(
+        default=None,
+        metadata={"help": "The column name containing additional input context."},
+    )
     dataset_num_samples: Optional[int] = field(
         default=None,
         metadata={"help": "Number of samples to use from the dataset for debugging/testing."},

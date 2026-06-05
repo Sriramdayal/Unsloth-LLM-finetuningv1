@@ -48,12 +48,20 @@ class DataProcessor:
     def load_dataset(self, split: str = "train") -> None:
         """Loads dataset from HF or local path with error handling."""
         try:
-            self.raw_dataset = load_dataset(
-                self.train_config.dataset_name,
-                split=split,
-                trust_remote_code=True,
-                num_proc=self._get_num_proc(),
-            )
+            try:
+                self.raw_dataset = load_dataset(
+                    self.train_config.dataset_name,
+                    split=split,
+                    num_proc=self._get_num_proc(),
+                )
+            except Exception as e:
+                logger.info(f"Failed to load dataset without trust_remote_code, retrying with trust_remote_code=True: {e}")
+                self.raw_dataset = load_dataset(
+                    self.train_config.dataset_name,
+                    split=split,
+                    trust_remote_code=True,
+                    num_proc=self._get_num_proc(),
+                )
             n = self.train_config.dataset_num_samples
             if n and n < len(self.raw_dataset):
                 logger.info(f"Subsampling dataset to {n} samples.")
@@ -70,6 +78,17 @@ class DataProcessor:
         """Enhanced heuristic for mapping varied dataset schemas."""
         cols = self.raw_dataset.column_names
         mapping: Dict[str, Optional[str]] = {}
+
+        # Check for explicit overrides from training config first
+        instr_col = getattr(self.train_config, "dataset_instruction_column", None)
+        out_col = getattr(self.train_config, "dataset_output_column", None)
+        inp_col = getattr(self.train_config, "dataset_input_column", None)
+
+        if instr_col and out_col:
+            mapping["instruction"] = instr_col
+            mapping["output"] = out_col
+            mapping["input"] = inp_col
+            return mapping
 
         # 1. Pre-formatted text column
         for cand in _TEXT_CANDIDATES:
@@ -110,6 +129,11 @@ class DataProcessor:
         """Formats data based on detected style (alpaca, chatml, etc)."""
         if self.raw_dataset is None:
             raise RuntimeError("No dataset loaded. Call load_dataset() first.")
+
+        # Resolve training config style override
+        config_style = getattr(self.train_config, "dataset_style", "auto")
+        if style == "auto" and config_style != "auto":
+            style = config_style
 
         mapping = self._auto_detect_mapping()
 

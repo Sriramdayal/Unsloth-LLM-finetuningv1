@@ -34,6 +34,10 @@
   <a href="https://huggingface.co/black279/Qwen_LeetCoder" target="_blank">
     <img src="https://img.shields.io/badge/HuggingFace-Qwen_LeetCoder-orange?style=flat-square" alt="HuggingFace Model"/>
   </a>
+  &nbsp;
+  <a href="https://huggingface.co/sriram279/Leet-Reason-Qwen0.5" target="_blank">
+    <img src="https://img.shields.io/badge/HuggingFace-Leet_Reason_Qwen0.5-orange?style=flat-square" alt="HuggingFace Model"/>
+  </a>
 </p>
 
 ---
@@ -407,10 +411,60 @@ batch_size: 2
 gradient_accumulation_steps: 4
 output_dir: "outputs/my_model"
 push_to_hub: false
+
+# Custom Dataset Column Mapping (Optional)
+# dataset_style: "alpaca"
+# dataset_instruction_column: "instruction"
+# dataset_output_column: "output"
+# dataset_input_column: "input"
 ```
 
 ```bash
 uv run unsloth-cli train --config config.yaml
+```
+
+### 📋 Custom Dataset Column Mapping
+
+If your dataset does not use standard column names (such as `greengerong/leetcode` which has columns like `content`, `python`, `java`, etc.), you can override the column mappings directly in your `config.yaml`:
+
+```yaml
+dataset_style: "alpaca"                 # Standard Alpaca template formatting
+dataset_instruction_column: "content"   # Problem/Prompt description
+dataset_output_column: "python"         # The target code/explanation output (python, java, c++, javascript)
+dataset_input_column: null              # Optional background/context column
+```
+
+This prevents the data parser from defaulting to a single-text column match and ensures your instructions and target responses are properly mapped and tokenized.
+
+---
+
+## 🔄 Merging LoRA Weights & Pushing to Hugging Face Hub
+
+Once fine-tuning is complete, you can merge your trained LoRA adapter weights back into the base model (saving it as a standalone 16-bit precision model) and optionally push it directly to the Hugging Face Hub.
+
+Use the `scripts/merge_and_push.py` utility:
+
+### 1. Merge locally
+This loads your adapter and its corresponding base model, merges the weights, and saves the full model locally:
+```bash
+uv run python scripts/merge_and_push.py --adapter outputs/qwen_leetcode
+```
+*(By default, this will save the merged model to `outputs/qwen_leetcode_merged`.)*
+
+### 2. Merge and push to Hugging Face Hub
+To merge the weights and upload the full model to your Hugging Face repository in a single command, specify the `--hub_id` parameter:
+```bash
+# Set your Hugging Face write token
+# Windows PowerShell:
+$env:HF_TOKEN="your_hf_write_token_here"
+
+# Linux / macOS / Git Bash:
+export HF_TOKEN="your_hf_write_token_here"
+
+# Merge and upload
+uv run python scripts/merge_and_push.py \
+  --adapter outputs/qwen_leetcode \
+  --hub_id "your-username/qwen-0.5b-leetcode"
 ```
 
 ---
@@ -460,6 +514,7 @@ scripts/
 ├── app.py                  # Gradio GUI (unsloth-gui)
 ├── run_training.py         # Script entry point
 ├── run_inference.py        # Script entry point
+├── merge_and_push.py       # Merge LoRA weights & push to HF Hub
 └── smoke_test.py           # Import validation
 ```
 

@@ -69,7 +69,7 @@ def run_inference(args):
 
     config = ModelConfig(model_name_or_path=args.model)
     runner = ModelRunner(config)
-    runner.setup_for_inference()
+    runner.setup_for_inference(adapter_path=args.adapter)
 
     response = runner.generate(args.prompt)
     print(f"\nPrompt: {args.prompt}")
@@ -88,6 +88,7 @@ def main():
     infer_parser = subparsers.add_parser("infer", help="Run inference")
     infer_parser.add_argument("--model", type=str, required=True, help="Model path or HF ID")
     infer_parser.add_argument("--prompt", type=str, required=True, help="Prompt text")
+    infer_parser.add_argument("--adapter", type=str, default=None, help="Path to LoRA adapter directory")
 
     args, unknown = parser.parse_known_args()
     args.unknown = unknown

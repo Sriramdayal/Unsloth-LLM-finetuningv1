@@ -316,18 +316,32 @@ class ModelRunner:
             tokenize=True,
             add_generation_prompt=True,
             return_tensors="pt",
-        ).to(self.model.device)
-
-        outputs = self.model.generate(
-            input_ids=inputs,
-            max_new_tokens=max_new_tokens,
-            use_cache=True,
-            temperature=temperature,
-            do_sample=temperature > 0,
         )
+        
+        # If inputs is a BatchEncoding/dict, move all its tensors to the model's device
+        if hasattr(inputs, "keys") and hasattr(inputs, "items"):
+            inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
+            outputs = self.model.generate(
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                use_cache=True,
+                temperature=temperature,
+                do_sample=temperature > 0,
+            )
+            prompt_len = inputs["input_ids"].shape[-1]
+        else:
+            inputs = inputs.to(self.model.device)
+            outputs = self.model.generate(
+                input_ids=inputs,
+                max_new_tokens=max_new_tokens,
+                use_cache=True,
+                temperature=temperature,
+                do_sample=temperature > 0,
+            )
+            prompt_len = inputs.shape[-1]
 
         # Return only the newly generated tokens (strip the prompt)
-        generated = outputs[0][inputs.shape[-1] :]
+        generated = outputs[0][prompt_len:]
         return self.tokenizer.decode(generated, skip_special_tokens=True)
 
 

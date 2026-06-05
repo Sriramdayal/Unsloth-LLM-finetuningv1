@@ -1,9 +1,24 @@
-model_name_or_path: "unsloth/llama-3-8b-bnb-4bit"
-dataset_name: "yahma/alpaca-cleaned"
+# Model Configuration
+model_name_or_path: "AdithyaSK/Qwen-0.5b-Code-Reasoning-v1"
 load_in_4bit: true
 max_seq_length: 2048
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+use_mock: false  # Set to true to bypass model loading and run a simulation
+
+# Training / Dataset Configuration
+dataset_name: "greengerong/leetcode"
+dataset_style: "alpaca"                 # Use instruction/input/output layout
+dataset_instruction_column: "content"   # Problem description
+dataset_output_column: "python"         # Target output language (python, java, c++, or javascript)
+output_dir: "outputs/qwen_leetcode"
+dry_run: false   # Set to true to verify dataset processing/tokenization without starting training
+
+# Hyperparameters
+learning_rate: 0.0002
 batch_size: 2
 gradient_accumulation_steps: 4
-learning_rate: 0.0002
-max_steps: 10
-output_dir: "outputs"
+num_train_epochs: 3.0
+max_steps: -1
+push_to_hub: false
