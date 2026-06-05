@@ -434,6 +434,8 @@ MIT
 * [llama.cpp](https://github.com/ggerganov/llama.cpp) — C++ LLM inference with CUDA / Metal / CPU backends
 * [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) — Python bindings with prebuilt GPU wheels
 * [Unsloth](https://github.com/unslothai/unsloth) — Triton-optimised LoRA training (Linux/WSL2)
+* [Apple MLX](https://github.com/ml-explore/mlx) — Apple Silicon machine learning framework
+* [MLX Tuning (mlx-lm)](https://github.com/ml-explore/mlx-examples/tree/main/llms/mlx_lm) — Apple Silicon LLM inference and fine-tuning
 * [HuggingFace Transformers](https://github.com/huggingface/transformers)
 * [BitsAndBytes](https://github.com/TimDettmers/bitsandbytes) — 4-bit NF4 quantization
 * [PEFT](https://github.com/huggingface/peft) — LoRA adapters
