@@ -1,12 +1,15 @@
-torch>=2.5.1
-transformers>=4.45
-trl
-peft
-bitsandbytes
-datasets
-accelerate
+torch>=2.6.0
+transformers>=5.16.1
+trl>=0.29.0
+peft>=0.20.0
+bitsandbytes>=0.41.0
+datasets>=2.14.0
+accelerate>=0.27.0
 gradio
 pandas
 huggingface_hub
 pyyaml
+tqdm
 smolagents
+# Optional: Soup CLI for eval/data/export (hybrid integration)
+# soup-cli[train]>=0.74.0,<0.75.0

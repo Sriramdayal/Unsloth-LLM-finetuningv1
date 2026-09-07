@@ -14,7 +14,7 @@ import pandas as pd
 from datasets import Dataset, load_dataset
 
 try:
-    from .config import ModelConfig, TrainConfig
+    from ..config import ModelConfig, TrainConfig
 except ImportError:
     from src.config import ModelConfig, TrainConfig
 

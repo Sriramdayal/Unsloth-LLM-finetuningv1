@@ -3,8 +3,8 @@ from unittest.mock import MagicMock
 import pytest
 
 from src.config import ModelConfig
-from src.core.factory import ModelFactory, _best_device, _platform
-from src.core.model_runner import ModelRunner
+from src.platform.factory import ModelFactory, _best_device, _platform
+from src.platform.model_runner import ModelRunner
 
 
 def test_modelfactory_detects_platform():

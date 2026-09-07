@@ -1,4 +1,4 @@
-# Unsloth Finetuning Package — API Documentation (v0.2.0)
+# Unsloth Finetuning Package — API Documentation (v0.3.0)
 
 This guide covers the Python API for `unsloth-finetuning`.  
 The package now uses a **Windows-native GPU stack** — no Triton, no WSL2 required.
@@ -52,7 +52,7 @@ and inference. It auto-selects the backend based on the model path and hardware:
 ### Training Setup
 ```python
 from src import ModelConfig
-from src.core.model_runner import ModelRunner
+from src.platform.model_runner import ModelRunner
 
 config = ModelConfig(
     model_name_or_path="unsloth/llama-3-8b-bnb-4bit",
@@ -68,7 +68,7 @@ model, tokenizer = runner.setup_for_training()  # applies LoRA automatically
 ### Inference — GGUF (llama.cpp CUBLAS, fastest on Windows)
 ```python
 from src import ModelConfig
-from src.core.model_runner import ModelRunner
+from src.platform.model_runner import ModelRunner
 
 config = ModelConfig(model_name_or_path="path/to/model.gguf")
 runner = ModelRunner(config)
@@ -122,7 +122,7 @@ The processor auto-detects dataset structure:
 Use `ModelFactory` directly for more control.
 
 ```python
-from src.core.factory import ModelFactory
+from src.platform.factory import ModelFactory
 from src.config import ModelConfig
 
 config = ModelConfig(
@@ -158,7 +158,7 @@ BitsAndBytesConfig(
 `train_model()` wraps TRL's `SFTTrainer` with hardware-aware defaults, or delegates to Apple-native `mlx-lm` on macOS.
 
 ```python
-from src.train import train_model
+from src.training.orchestrator import train_model
 from src.config import ModelConfig, TrainConfig
 
 train_cfg = TrainConfig(
@@ -223,11 +223,11 @@ On Windows, `llama-cpp-python` requires `cudart64_12.dll` to GPU-accelerate infe
 The package resolves this automatically from PyTorch's bundled CUDA runtime —
 **no separate CUDA Toolkit install is needed**.
 
-The bootstrap (`src/utils/llama_loader.py`) runs transparently when you call
+The bootstrap (`src/platform/dll_bootstrap.py`) runs transparently when you call
 `runner.setup_for_inference()` with a `.gguf` path. You can also call it manually:
 
 ```python
-from src.utils.llama_loader import bootstrap_windows_cuda_dlls
+from src.platform.dll_bootstrap import bootstrap_windows_cuda_dlls
 bootstrap_windows_cuda_dlls()  # Safe to call multiple times (no-op after first call)
 ```
 
@@ -242,7 +242,7 @@ bootstrap_windows_cuda_dlls()  # Safe to call multiple times (no-op after first 
 ## 8. HardwareManager
 
 ```python
-from src.utils.env import HardwareManager
+from src.platform.hardware import HardwareManager
 
 # Print a system report
 HardwareManager.log_system_report()
@@ -408,4 +408,60 @@ Runs high-performance inference using local `.gguf` files via `llama.cpp`.
       "max_tokens": 64
     }'\''
   ```
+
+---
+
+## 10. Soup Integration (Optional)
+
+[Soup](https://github.com/MakazhanAlpamys/Soup) is consumed as an external CLI
+(subprocess only — never imported) for model export and config generation.
+Requires the `soup` extra:
+
+```bash
+pip install -e ".[soup]"
+```
+
+### Export a model to GGUF
+
+```python
+from src.soup import SoupClient
+
+client = SoupClient()
+assert client.is_available(), "install soup-cli first: pip install -e \".[soup]\""
+gguf_path = client.export_gguf("./outputs/my_model", quant="q4_k_m")
+```
+
+### Generate `soup.yaml` from repo configs
+
+`SoupConfig.from_model_train_configs()` maps `ModelConfig` + `TrainConfig`
+fields to Soup's YAML format (`target_modules` are omitted unless customized,
+so Soup auto-detects them):
+
+```python
+from src.soup import SoupConfig
+
+soup_config = SoupConfig.from_model_train_configs(model_config, train_config)
+soup_config.to_yaml("soup.yaml")  # then: soup train --config soup.yaml
+```
+
+See `examples/configs/soup_qwen.yaml` and `examples/soup_export.py`.
+
+---
+
+## 11. Package Layout & Backward Compatibility
+
+Since v0.3.0 the code lives in focused subpackages:
+
+| Subpackage | Contents |
+|---|---|
+| `src.platform` | `HardwareManager`, `ModelFactory`, `ModelRunner`, DLL bootstrap |
+| `src.data` | `DataProcessor` |
+| `src.training` | `train_model()`, `train_mlx()` |
+| `src.soup` | `SoupClient`, `SoupConfig` (optional integration) |
+| `src.service` | FastAPI app, routes, schemas, job registry, model cache |
+| `src.ui` | Gradio Fine-Tuning Studio |
+
+The old paths (`src.core.*`, `src.utils.*`, `src.train`, `src.api.*`) are kept as
+re-export shims and continue to work, but new code should import from the
+canonical locations above (or from the top-level `src` package).
 

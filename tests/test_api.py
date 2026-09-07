@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 
 from fastapi.testclient import TestClient
 
-from src.api.main import create_app
+from src.service.app import create_app
 
 client = TestClient(create_app())
 
@@ -74,7 +74,7 @@ class TestInferenceEndpoint:
         )
         assert response.status_code == 422
 
-    @patch("src.api.routes.inference.model_cache")
+    @patch("src.service.routes.inference.model_cache")
     def test_infer_success_with_mocked_runner(self, mock_cache):
         """Verify successful inference flow with a mocked model cache."""
         mock_runner = MagicMock()
@@ -128,7 +128,7 @@ class TestGGUFInferenceEndpoint:
 class TestTrainingEndpoint:
     """Tests for POST /api/v1/train and GET /api/v1/train/{job_id}/status."""
 
-    @patch("src.api.routes.training._run_training_job")
+    @patch("src.service.routes.training._run_training_job")
     def test_train_enqueue_returns_job_id(self, mock_train):
         """POST /train should return 200 with a job_id."""
         response = client.post(
@@ -149,7 +149,7 @@ class TestTrainingEndpoint:
         response = client.get("/api/v1/train/nonexistent/status")
         assert response.status_code == 404
 
-    @patch("src.api.routes.training._run_training_job")
+    @patch("src.service.routes.training._run_training_job")
     def test_train_status_after_enqueue(self, mock_train):
         """After enqueuing, the status should be 'queued'."""
         enqueue_resp = client.post(
@@ -185,7 +185,7 @@ class TestTrainingEndpoint:
 class TestTrainingRequestDefaults:
     """Verify TrainingRequest default values are applied correctly."""
 
-    @patch("src.api.routes.training._run_training_job")
+    @patch("src.service.routes.training._run_training_job")
     def test_defaults_applied(self, mock_train):
         """Posting with no overrides should accept all defaults."""
         response = client.post("/api/v1/train", json={})
@@ -199,7 +199,7 @@ class TestModelCache:
     """Tests for ModelCache LRU eviction and cleanup."""
 
     def test_model_cache_lru_eviction(self):
-        from src.api.dependencies import ModelCache
+        from src.service.dependencies import ModelCache
 
         cache = ModelCache(max_size=2)
         r1 = MagicMock()
@@ -235,7 +235,7 @@ class TestModelCache:
 class TestTrainingMocking:
     """Tests for TrainingRequest with use_mock parameter."""
 
-    @patch("src.api.routes.training._run_training_job")
+    @patch("src.service.routes.training._run_training_job")
     def test_train_with_use_mock(self, mock_train):
         """Verify POST /train accepts use_mock and calls worker."""
         response = client.post(

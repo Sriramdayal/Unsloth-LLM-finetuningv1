@@ -1,0 +1,29 @@
+# Example training config: Qwen-0.5B on the LeetCode dataset.
+# Usage:
+#   unsloth-cli train --config examples/configs/train_qwen.yaml
+#   (also see examples/configs/soup_qwen.yaml for the Soup equivalent)
+
+# Model Configuration
+model_name_or_path: "AdithyaSK/Qwen-0.5b-Code-Reasoning-v1"
+load_in_4bit: true
+max_seq_length: 2048
+lora_r: 16
+lora_alpha: 32
+lora_dropout: 0.05
+use_mock: false
+
+# Training / Dataset Configuration
+dataset_name: "greengerong/leetcode"
+dataset_style: "alpaca"
+dataset_instruction_column: "content"
+dataset_output_column: "python"
+output_dir: "outputs/qwen_leetcode"
+dry_run: false
+
+# Hyperparameters
+learning_rate: 0.0002
+batch_size: 2
+gradient_accumulation_steps: 4
+num_train_epochs: 3.0
+max_steps: -1
+push_to_hub: false
