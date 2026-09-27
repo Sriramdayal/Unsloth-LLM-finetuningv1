@@ -61,13 +61,16 @@ for mod_name in _HEAVY_MODULES:
             mock.bfloat16 = "bfloat16"
         sys.modules[mod_name] = mock
 
+# NOTE: src.soup needs no mocks — it is stdlib-only (subprocess/shutil/dataclasses)
+# and talks to the `soup` CLI via subprocess, never via import.
+
 
 # ── Shared fixtures for tests ───────────────────────────────────────────────
 
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api.main import create_app
+from src.service.app import create_app
 from src.config import ModelConfig, TrainConfig
 
 

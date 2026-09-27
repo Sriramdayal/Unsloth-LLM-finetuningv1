@@ -13,10 +13,10 @@ import sys
 from transformers import HfArgumentParser
 
 from .config import ModelConfig, TrainConfig
-from .core.factory import ModelFactory
 from .data import DataProcessor
-from .train import train_model
-from .utils.env import HardwareManager
+from .platform.factory import ModelFactory
+from .platform.hardware import HardwareManager
+from .training.orchestrator import train_model
 
 # Setup Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -65,7 +65,7 @@ def run_training(args):
 
 def run_inference(args):
     """Subcommand for inference."""
-    from .core.model_runner import ModelRunner
+    from .platform.model_runner import ModelRunner
 
     config = ModelConfig(model_name_or_path=args.model)
     runner = ModelRunner(config)

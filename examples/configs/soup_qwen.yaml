@@ -1,0 +1,26 @@
+# Equivalent soup.yaml for examples/configs/train_qwen.yaml.
+# Generate programmatically with:
+#   SoupConfig.from_model_train_configs(model_config, train_config).to_yaml("soup.yaml")
+# Train with:
+#   soup train --config examples/configs/soup_qwen.yaml
+
+base: "AdithyaSK/Qwen-0.5b-Code-Reasoning-v1"
+task: sft
+backend: unsloth
+
+data:
+  train: "greengerong/leetcode"
+  format: alpaca
+  max_length: 2048
+
+training:
+  epochs: 3.0
+  lr: 0.0002
+  batch_size: 2
+  quantization: 4bit
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.05
+
+output: "outputs/qwen_leetcode"

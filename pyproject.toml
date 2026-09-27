@@ -36,13 +36,13 @@ classifiers = [
 ]
 
 dependencies = [
-    "torch==2.5.1",
-    "transformers>=4.47.0",
+    "torch>=2.6.0",
+    "transformers>=5.16.1",
     "datasets>=2.14.0",
-    "peft>=0.13.0",
-    "trl>=0.12.0",
+    "peft>=0.20.0",
+    "trl>=0.29.0",
     "bitsandbytes>=0.41.0",
-    "accelerate>=1.1.0",
+    "accelerate>=0.27.0",
     "huggingface-hub>=0.19.0",
     "pyyaml>=6.0",
     "pandas>=1.5.0",
@@ -52,6 +52,10 @@ dependencies = [
 [project.optional-dependencies]
 unsloth = [
     "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git ; sys_platform == 'linux'",
+]
+
+soup = [
+    "soup-cli[train]>=0.74.0,<0.75.0",
 ]
 
 # ── Platform-specific GPU backends ────────────────────────────────────────
@@ -127,13 +131,13 @@ all = [
 
 # Platform meta-extras
 all-windows = [
-    "unsloth-finetuning-sriram[dev,gui,windows]",
+    "unsloth-finetuning-sriram[dev,gui,windows,soup]",
 ]
 all-linux = [
-    "unsloth-finetuning-sriram[dev,gui,linux]",
+    "unsloth-finetuning-sriram[dev,gui,linux,soup]",
 ]
 all-macos = [
-    "unsloth-finetuning-sriram[dev,gui,macos]",
+    "unsloth-finetuning-sriram[dev,gui,macos,soup]",
 ]
 all-cpu = [
     "unsloth-finetuning-sriram[dev,gui,cpu]",
@@ -149,7 +153,7 @@ Changelog = "https://github.com/Sriramdayal/Unsloth-LLM-finetuningv1/blob/main/C
 
 [project.scripts]
 unsloth-cli = "src.cli:main"
-unsloth-gui = "scripts.app:main"
+unsloth-gui = "src.ui.gradio_app:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

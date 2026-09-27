@@ -18,11 +18,27 @@ CHECKS = [
     ("src.config.ModelConfig", "src.config", "ModelConfig", False),
     ("src.config.TrainConfig", "src.config", "TrainConfig", False),
     ("src.data.DataProcessor", "src.data", "DataProcessor", False),
+    ("src.training.orchestrator.train_model", "src.training.orchestrator", "train_model", False),
+    ("src.training.mlx_trainer.train_mlx", "src.training.mlx_trainer", "train_mlx", False),
+    ("src.platform.factory.ModelFactory", "src.platform.factory", "ModelFactory", True),
+    (
+        "src.platform.model_runner.ModelRunner",
+        "src.platform.model_runner",
+        "ModelRunner",
+        True,
+    ),
+    ("src.platform.hardware.HardwareManager", "src.platform.hardware", "HardwareManager", False),
+    ("src.service.app.create_app", "src.service.app", "create_app", True),
+    ("src.soup.SoupClient", "src.soup", "SoupClient", False),
+    ("src.soup.SoupConfig", "src.soup", "SoupConfig", False),
+    ("src.ui.gradio_app.main", "src.ui.gradio_app", "main", True),
+    ("src.cli.main", "src.cli", "main", True),
+    # Legacy shims (backward compat — must keep working)
     ("src.train.train_model", "src.train", "train_model", False),
     ("src.core.factory.ModelFactory", "src.core.factory", "ModelFactory", True),
     ("src.core.model_runner.ModelRunner", "src.core.model_runner", "ModelRunner", True),
     ("src.utils.env.HardwareManager", "src.utils.env", "HardwareManager", False),
-    ("src.cli.main", "src.cli", "main", True),
+    ("src.api.main.create_app", "src.api.main", "create_app", True),
 ]
 
 

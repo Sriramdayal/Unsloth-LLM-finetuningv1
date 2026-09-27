@@ -22,10 +22,10 @@ jobs:
         run: uv sync --all-extras
 
       - name: Check Formatting (Black)
-        run: uv run black --check src/ tests/ scripts/
+        run: uv run black --check src/ tests/ scripts/ examples/
 
       - name: Check Import Order (isort)
-        run: uv run isort --check-only src/ tests/ scripts/
+        run: uv run isort --check-only src/ tests/ scripts/ examples/
 
       - name: Run Fast Tests (No slow/gpu)
         run: uv run pytest -m "not slow and not gpu" tests/

@@ -1,4 +1,4 @@
-.PHONY: help install test test-fast lint format docker-build docker-run clean
+.PHONY: help install test test-fast test-soup lint format docker-build docker-run clean
 
 # Default target: show help
 all: help
@@ -8,6 +8,7 @@ help:
 	@echo "  install        Install dependencies including dev tools using uv"
 	@echo "  test           Run all tests with uv"
 	@echo "  test-fast      Run fast tests (excludes slow/gpu tests) with uv"
+	@echo "  test-soup      Run Soup integration tests with uv"
 	@echo "  lint           Run lint checks (black, isort, flake8)"
 	@echo "  format         Auto-format code (black, isort)"
 	@echo "  docker-build   Build production Docker image"
@@ -23,13 +24,16 @@ test:
 test-fast:
 	uv run pytest tests/ -v -m "not slow and not gpu"
 
+test-soup:
+	uv run pytest tests/test_soup.py -v
+
 lint:
-	uv run black --check src/ tests/ scripts/
-	uv run isort --check-only src/ tests/ scripts/
+	uv run black --check src/ tests/ scripts/ examples/
+	uv run isort --check-only src/ tests/ scripts/ examples/
 
 format:
-	uv run black src/ tests/ scripts/
-	uv run isort src/ tests/ scripts/
+	uv run black src/ tests/ scripts/ examples/
+	uv run isort src/ tests/ scripts/ examples/
 
 docker-build:
 	docker build -f Dockerfile.prod -t unsloth-api:latest .

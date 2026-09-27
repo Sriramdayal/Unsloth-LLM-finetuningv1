@@ -53,7 +53,7 @@ A **professional enterprise pipeline** for fine-tuning and running open-source L
 | 🔄 **Dual inference backends** | Auto-selects: `.gguf` → llama.cpp · HF repo/dir → transformers / mlx-lm |
 | 🤖 **Auto backend selection** | Platform detected at runtime — no config needed |
 | 🧠 **Multi-Agent System (Beta)** | `smolagents` powered AI assistant for model/param selection & coding |
-| 🏗️ **Modular architecture** | Clean separation: `ModelFactory` · `ModelRunner` · `DataProcessor` |
+| 🏗️ **Modular architecture** | Clean subpackages: `platform` · `data` · `training` · `service` · `soup` · `ui` |
 | 🖥️ **Interactive GUI** | Gradio-based no-code fine-tuning studio |
 | 🛠️ **Robust CLI** | Unified entry point for training and inference |
 | 💻 **CPU mock mode** | Full pipeline test without any GPU |
@@ -108,7 +108,7 @@ uv pip install llama-cpp-python \
 ```
 
 > **How it works:** `cudart64_12.dll` is auto-resolved from PyTorch's bundled CUDA runtime
-> via `src/utils/llama_loader.py`. No NVIDIA CUDA Toolkit installation required.
+> via `src/platform/dll_bootstrap.py`. No NVIDIA CUDA Toolkit installation required.
 
 **Verify your GPU:**
 ```bash
@@ -366,9 +366,7 @@ Once running, the interactive documentation is available at:
 ## 📘 Python API
 
 ```python
-from src import ModelConfig, TrainConfig
-from src.core.model_runner import ModelRunner
-from src.data import DataProcessor
+from src import DataProcessor, ModelConfig, ModelRunner, TrainConfig, train_model
 
 # ── Training (backend auto-selected: Unsloth/Linux, QLoRA/Windows, MLX/macOS) ─
 config = ModelConfig(
@@ -469,6 +467,44 @@ uv run python scripts/merge_and_push.py \
 
 ---
 
+## 🍲 Soup Integration (Optional)
+
+[Soup](https://github.com/MakazhanAlpamys/Soup) is used as an **external tool** (subprocess, never imported) for model export and config generation. Install it with:
+
+```bash
+pip install -e ".[soup]"
+```
+
+### Export a trained model to GGUF
+
+```python
+from src.soup import SoupClient
+
+client = SoupClient()
+if client.is_available():
+    gguf_path = client.export_gguf("./outputs/quickstart", quant="q4_k_m")
+```
+
+Or run the example end to end:
+
+```bash
+python examples/soup_export.py ./outputs/quickstart --quant q4_k_m
+```
+
+### Generate `soup.yaml` from repo configs
+
+```python
+from src import ModelConfig, TrainConfig
+from src.soup import SoupConfig
+
+soup_config = SoupConfig.from_model_train_configs(model_config, train_config)
+soup_config.to_yaml("soup.yaml")  # then: soup train --config soup.yaml
+```
+
+See `examples/configs/soup_qwen.yaml` for a complete example equivalent to `examples/configs/train_qwen.yaml`.
+
+---
+
 ## 🔧 Environment Variables
 
 | Variable | Default | Description |
@@ -499,23 +535,57 @@ export LLAMA_N_GPU_LAYERS=20       # Linux / macOS
 
 ```
 src/
-├── cli.py                  # Unified CLI: train + infer subcommands
-├── config.py               # ModelConfig / TrainConfig dataclasses
-├── data.py                 # DataProcessor (load, format, tokenize)
-├── train.py                # train_model() — SFTTrainer / MLX training orchestrator
-├── core/
-│   ├── factory.py          # Cross-platform ModelFactory (Unsloth / QLoRA / MLX / MPS)
-│   └── model_runner.py     # ModelRunner: GGUF/llama.cpp + HF/MLX dual-backend
-└── utils/
-    ├── env.py              # HardwareManager (CUDA / MLX / MPS / CPU detection)
-    └── llama_loader.py     # Platform DLL/library bootstrap for llama-cpp-python
+├── __init__.py               # Public API (v0.3.0): ModelConfig, ModelRunner, train_model, ...
+├── cli.py                    # Unified CLI: train + infer subcommands
+├── config.py                 # ModelConfig / TrainConfig dataclasses
+├── train.py                  # Shim → src.training (backward compat)
+├── finetuning_agent.py       # smolagents assistant (standalone)
+│
+├── platform/                 # Cross-platform backend layer
+│   ├── hardware.py           # HardwareManager (CUDA / MLX / MPS / CPU detection)
+│   ├── dll_bootstrap.py      # Platform DLL/library bootstrap for llama-cpp-python
+│   ├── factory.py            # ModelFactory (Unsloth / QLoRA / MLX / transformers)
+│   └── model_runner.py       # ModelRunner: GGUF/llama.cpp + HF/MLX dual-backend
+│
+├── data/                     # Data ETL layer
+│   └── processor.py          # DataProcessor (load, format, tokenize)
+│
+├── training/                 # Training orchestration
+│   ├── orchestrator.py       # train_model() — SFTTrainer loop
+│   └── mlx_trainer.py        # train_mlx() — Apple MLX via mlx_lm.lora
+│
+├── soup/                     # Soup CLI integration (optional, subprocess-based)
+│   ├── client.py             # SoupClient — export_gguf() and other soup commands
+│   └── config.py             # SoupConfig — generates soup.yaml from repo configs
+│
+├── service/                  # REST API layer
+│   ├── app.py                # FastAPI app factory (create_app)
+│   ├── dependencies.py       # ModelCache (LRU) + JobRegistry singletons
+│   ├── schemas/requests.py   # Pydantic request/response models
+│   └── routes/               # health.py, inference.py, training.py
+│
+├── ui/                       # Gradio GUI
+│   └── gradio_app.py         # Fine-Tuning Studio (unsloth-gui)
+│
+├── core/ & utils/            # Backward-compat re-export shims (do not add new code)
+└── api/                      # Backward-compat re-export shims (real code lives in service/)
+
+examples/
+├── quickstart.py             # Minimal end-to-end training run
+├── api_training.py           # REST API: enqueue job + poll status (stdlib only)
+├── mlx_inference.py          # MLX inference on Apple Silicon
+├── data_etl.py               # DataProcessor preview run
+├── soup_export.py            # GGUF export via Soup
+└── configs/
+    ├── train_qwen.yaml       # Example training config (Qwen-0.5B + LeetCode)
+    └── soup_qwen.yaml        # Equivalent soup.yaml
 
 scripts/
-├── app.py                  # Gradio GUI (unsloth-gui)
-├── run_training.py         # Script entry point
-├── run_inference.py        # Script entry point
-├── merge_and_push.py       # Merge LoRA weights & push to HF Hub
-└── smoke_test.py           # Import validation
+├── app.py                    # Thin wrapper → src.ui (unsloth-gui entry)
+├── run_training.py           # Script entry point
+├── run_inference.py          # Script entry point
+├── merge_and_push.py         # Merge LoRA weights & push to HF Hub
+└── smoke_test.py             # Import validation (new + legacy paths)
 ```
 
 ---
@@ -532,12 +602,18 @@ To execute the test suite:
 # Run pytest with uv
 uv run pytest
 
+# Run Soup integration tests only
+uv run pytest tests/test_soup.py -v
+# (or: make test-soup)
+
 # Run tests and generate coverage reports (terminal and HTML)
 ./scripts/run_all_tests.sh
 ```
 
 ### Running the Smoke Test
-Verifies library imports, resolves CUDA/MPS availability, and reports the active backend:
+Verifies all package imports — new canonical paths (`src.platform.*`, `src.training.*`,
+`src.service.*`, `src.soup.*`, `src.ui.*`) plus legacy backward-compat shims —
+and reports the active backend:
 ```bash
 uv run python scripts/smoke_test.py
 ```
@@ -561,6 +637,7 @@ MIT
 * [BitsAndBytes](https://github.com/TimDettmers/bitsandbytes) — 4-bit NF4 quantization
 * [PEFT](https://github.com/huggingface/peft) — LoRA adapters
 * [TRL](https://github.com/huggingface/trl) — SFTTrainer
+* [Soup](https://github.com/MakazhanAlpamys/Soup) — Post-training ops CLI (GGUF export, config generation)
 
 ---
 
